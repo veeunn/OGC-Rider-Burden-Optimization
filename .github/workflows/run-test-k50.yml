@@ -1,0 +1,108 @@
+name: Run TEST_K50_1 experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      population_size:
+        description: "NSGA-II population size"
+        required: true
+        default: "12"
+      generations:
+        description: "NSGA-II generations"
+        required: true
+        default: "5"
+      seed:
+        description: "Random seed"
+        required: true
+        default: "0"
+      metric:
+        description: "Equity metric"
+        required: true
+        default: "gini"
+        type: choice
+        options:
+          - gini
+          - std
+          - range
+          - max
+          - cv
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile experiment code
+        run: |
+          python -m py_compile run_s0.py
+          python -m py_compile run_equity.py
+          python -m py_compile run_all_scenarios.py
+          python -m py_compile 03_src/candidate_pool.py
+          python -m py_compile 03_src/set_partition.py
+          python -m py_compile 03_src/nsga2_solver.py
+
+      - name: Run S0 to S3
+        run: |
+          python run_all_scenarios.py \
+            --problem 01_data/test/TEST_K50_1.json \
+            --timelimit 60 \
+            --population-size ${{ inputs.population_size }} \
+            --generations ${{ inputs.generations }} \
+            --seed ${{ inputs.seed }} \
+            --metric ${{ inputs.metric }}
+
+      - name: Write experiment summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = Path("05_results/S0/TEST_K50_1_workforce.json")
+          lines = ["# TEST_K50_1 experiment"]
+          if summary.exists():
+              s0 = json.loads(summary.read_text())
+              lines += [
+                  "",
+                  "## S0",
+                  f"- R0: {s0.get('R0')}",
+                  f"- Baseline average cost: {s0.get('baseline_avg_cost')}",
+                  f"- Baseline total cost: {s0.get('baseline_total_cost')}",
+              ]
+
+          for scenario in ["S1", "S2", "S3"]:
+              files = sorted((Path("05_results") / scenario).glob("*.json"))
+              if not files:
+                  continue
+              d = json.loads(files[-1].read_text())
+              knee = d.get("knee_point")
+              lines += ["", f"## {scenario}", f"- Pareto solutions: {d.get('n_pareto')}"]
+              if knee:
+                  lines += [
+                      f"- Knee average cost: {knee.get('avg_cost')}",
+                      f"- Knee inequality: {knee.get('inequality')}",
+                      f"- Knee Price of Fairness (%): {knee.get('price_of_fairness_pct')}",
+                  ]
+
+          Path("experiment_summary.md").write_text("\n".join(lines), encoding="utf-8")
+          PY
+          cat experiment_summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload experiment results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEST_K50_1-results
+          path: |
+            05_results/
+            experiment_summary.md
+          if-no-files-found: warn
