@@ -2,8 +2,14 @@
 
 Examples
 --------
-python run_baseline.py --problem 01_data/test/TEST_K50_1.json --timelimit 60
-python run_baseline.py --problem 01_data/stage1/STAGE1_2.json --timelimit 100 --save 05_results/raw/STAGE1_2_baseline.json
+Original mixed-mode baseline:
+  python run_baseline.py --problem 01_data/test/TEST_K50_1.json --timelimit 60
+
+BIKE-only with original BIKE availability:
+  python run_baseline.py --problem 01_data/stage1/STAGE1_2.json --timelimit 100 --bike-only
+
+BIKE-only with an explicit availability override:
+  python run_baseline.py --problem 01_data/stage1/STAGE1_2.json --timelimit 100 --bike-only --bike-availability 100
 """
 from __future__ import annotations
 import argparse
@@ -21,11 +27,34 @@ from util import Order, Rider, solution_check
 from myalgorithm import algorithm
 
 
+def build_objects(prob: dict, bike_only: bool, bike_availability: int | None):
+    orders = [Order(x) for x in prob["ORDERS"]]
+    riders = [Rider(x) for x in prob["RIDERS"]]
+
+    if bike_only:
+        for r in riders:
+            if r.type != "BIKE":
+                r.available_number = 0
+        if bike_availability is not None:
+            for r in riders:
+                if r.type == "BIKE":
+                    r.available_number = bike_availability
+
+    dist = np.asarray(prob["DIST"])
+    for r in riders:
+        r.T = np.round(dist / r.speed + r.service_time)
+    return orders, riders, dist
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--problem", required=True, help="Path to an OGC JSON instance")
     ap.add_argument("--timelimit", type=float, default=60.0)
     ap.add_argument("--save", default=None, help="Optional JSON output path")
+    ap.add_argument("--bike-only", action="store_true",
+                    help="Set WALK/CAR availability to zero.")
+    ap.add_argument("--bike-availability", type=int, default=None,
+                    help="Optional BIKE availability override; use only when methodologically intended.")
     args = ap.parse_args()
 
     problem_path = Path(args.problem)
@@ -33,29 +62,22 @@ def main() -> None:
         prob = json.load(f)
 
     K = prob["K"]
-    orders = [Order(x) for x in prob["ORDERS"]]
-    riders = [Rider(x) for x in prob["RIDERS"]]
-    dist = np.asarray(prob["DIST"])
-
-    for r in riders:
-        r.T = np.round(dist / r.speed + r.service_time)
+    orders, riders, dist = build_objects(prob, args.bike_only, args.bike_availability)
 
     t0 = time.time()
     solution = algorithm(K, orders, riders, dist, args.timelimit)
     elapsed = time.time() - t0
 
-    # Recreate clean objects before independent evaluation, matching Yong_alg_test.py.
-    orders = [Order(x) for x in prob["ORDERS"]]
-    riders = [Rider(x) for x in prob["RIDERS"]]
-    for r in riders:
-        r.T = np.round(dist / r.speed + r.service_time)
-
+    # Independent re-evaluation with fresh objects, matching Yong_alg_test.py.
+    orders, riders, dist = build_objects(prob, args.bike_only, args.bike_availability)
     checked = solution_check(K, orders, riders, dist, solution)
     checked["time"] = elapsed
     checked["timelimit_exception"] = elapsed > args.timelimit + 1
     checked["exception"] = None
     checked["prob_name"] = prob.get("name", problem_path.stem)
     checked["prob_file"] = str(problem_path)
+    checked["analysis_scope"] = "BIKE-only" if args.bike_only else "original mixed-mode"
+    checked["bike_availability_override"] = args.bike_availability
 
     print(json.dumps(checked, ensure_ascii=False, indent=2))
 
