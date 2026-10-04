@@ -6,6 +6,8 @@ Multi-objective last-mile delivery optimization research based on the **Optimiza
 
 This project studies whether a cost-minimizing delivery allocation can concentrate operational burden on particular riders, and how much additional delivery cost is required to improve burden equity.
 
+> **Main-study scope (current): OGC Stage 1 only.** The 18 Stage 1 instances are the empirical basis for the S0-S3 analysis. Stage 2/3 files and scalability prototypes are retained for reproducibility and future extension, but they are **not part of the current main empirical study**.
+
 The current study design uses **BIKE riders only** to control for transport-mode heterogeneity and evaluates three burden dimensions separately:
 
 - **S1 — Order Count:** number of orders assigned to each rider
@@ -65,14 +67,16 @@ The intended output is a transparent comparison of:
 
 ## Project status
 
-Repository scaffold initialized. Next steps are:
+The main Stage 1 research pipeline is implemented. The current execution sequence is:
 
-1. import and preserve the supplied OGC baseline,
-2. verify the original objective and feasibility checks from code,
-3. implement burden extraction,
-4. finalize the equity function,
-5. run S0-S3,
-6. populate `05_results/`, `06_figures/`, and `07_report/`.
+1. smoke-test S0-S3 on representative Stage 1 instances;
+2. run all 18 Stage 1 instances with small validation settings;
+3. assess NSGA-II parameter and seed stability;
+4. freeze final settings;
+5. run the final multi-seed Stage 1 experiment;
+6. generate Pareto, Gini, Price-of-Fairness, and aggregate result tables/figures.
+
+Stage 2/3 scalability work is archived as an experimental extension and is not required for the current paper.
 
 
 ## Quick start
