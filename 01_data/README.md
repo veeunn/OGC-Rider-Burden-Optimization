@@ -10,14 +10,29 @@ The user has confirmed that the supplied competition data may be included in thi
 01_data/
 ├── README.md
 ├── test/
-└── stage1/
+├── stage1/
+├── stage2_parts/
+└── stage3_parts/
 ```
 
-## Committed reproducibility set
+Stage 1 instances are stored as original JSON files. Stage 2 and Stage 3 use split binary parts because some original JSON files exceed GitHub's browser-upload size limit. Split parts are byte-for-byte fragments of the original files; they are not independently valid JSON documents.
 
-At minimum, the repository contains small test instances and Stage 1 instances required for the baseline smoke/reproduction workflow.
+Each split-data directory contains a `manifest.json` with the original filename, original byte size, SHA-256 digest, and ordered part list.
 
-All JSON files use the original OGC schema and are not transformed before optimization.
+## Restore Stage 2 / Stage 3
+
+Restore one instance and verify its byte size and SHA-256 digest:
+
+```bash
+python scripts/restore_split_data.py \
+  --parts-dir 01_data/stage2_parts \
+  --output-dir restored/stage2 \
+  --file STAGE2_2.json
+```
+
+Restore every instance in a stage by omitting `--file`.
+
+GitHub Actions workflows `Run Stage 2 batch` and `Run Stage 3 batch` perform restoration and verification automatically before validation and optimization.
 
 ## Schema
 
@@ -40,10 +55,10 @@ All JSON files use the original OGC schema and are not transformed before optimi
 
 ## Validation
 
-Run:
+For a normal JSON instance:
 
 ```bash
 python scripts/validate_data.py 01_data/test/TEST_K50_1.json
 ```
 
-The validator checks order count, distance-matrix shape, and the presence of BIKE rider data.
+For split Stage 2/3 data, restore it first and then run the same validator on the restored JSON.
