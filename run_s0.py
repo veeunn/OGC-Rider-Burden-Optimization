@@ -102,6 +102,7 @@ def main() -> None:
         "R0":r0,
         "baseline_avg_cost":avg_cost,
         "baseline_total_cost":total_cost,
+        "selected_candidate_ids":[int(i) for i in selected],
         "s0_bike_availability":"non-binding",
         "candidate_pool_file":str(pool_path),
         "n_candidates":int(pool["n_candidates"]),
