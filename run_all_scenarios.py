@@ -29,7 +29,6 @@ def main():
 
     run([py,"run_s0.py",
          "--problem",args.problem,
-         "--solver","scipy",
          "--timelimit",str(args.timelimit),
          "--output-dir",str(s0dir)])
 
