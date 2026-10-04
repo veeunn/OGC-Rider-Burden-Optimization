@@ -34,12 +34,14 @@ def main():
          "--output-dir",str(s0dir)])
 
     workforce=s0dir/f"{stem}_workforce.json"
+    candidate_pool=s0dir/f"{stem}_bike_pool.json"
 
     for scenario in ["S1","S2","S3"]:
         run([py,"run_equity.py",
              "--scenario",scenario,
              "--problem",args.problem,
              "--workforce",str(workforce),
+             "--candidate-pool",str(candidate_pool),
              "--output-dir",args.output_dir,
              "--population-size",str(args.population_size),
              "--generations",str(args.generations),
