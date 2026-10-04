@@ -128,13 +128,65 @@ def mutate_permutation(rng,x,intensity=1):
         elif j>i: y[i:j]=y[i:j][::-1]
     return y
 
+def _nearest_neighbor_permutation(problem, start_order):
+    K=problem.K
+    unvisited=np.ones(K,dtype=bool)
+    out=np.empty(K,dtype=np.int32)
+    cur=int(start_order)
+    for pos in range(K):
+        out[pos]=cur
+        unvisited[cur]=False
+        if pos==K-1:
+            break
+        candidates=np.flatnonzero(unvisited)
+        # Pickup-to-pickup travel distance. Deadline provides a small
+        # deterministic tie breaker toward more urgent orders.
+        score=problem.dist[cur,candidates].astype(float)
+        score += 1e-6*(problem.deadline[candidates]-problem.deadline[candidates].min())
+        cur=int(candidates[int(np.argmin(score))])
+    return out
+
+
+def _spatial_sweep_permutations(problem):
+    shop_lat=np.asarray([o.shop_lat for o in problem.orders],dtype=float)
+    shop_lon=np.asarray([o.shop_lon for o in problem.orders],dtype=float)
+    dlv_lat=np.asarray([o.dlv_lat for o in problem.orders],dtype=float)
+    dlv_lon=np.asarray([o.dlv_lon for o in problem.orders],dtype=float)
+
+    def sweep(lat,lon):
+        cy=float(np.mean(lat)); cx=float(np.mean(lon))
+        angle=np.arctan2(lat-cy,lon-cx)
+        radius=(lat-cy)**2+(lon-cx)**2
+        return np.lexsort((radius,angle)).astype(np.int32)
+
+    return [sweep(shop_lat,shop_lon),sweep(dlv_lat,dlv_lon)]
+
+
 def heuristic_permutations(problem):
     ids=np.arange(problem.K,dtype=np.int32)
-    seeds=[ids[np.argsort(problem.ready,kind="stable")],ids[np.argsort(problem.deadline,kind="stable")],ids[np.lexsort((problem.deadline,problem.ready))],ids[np.lexsort((problem.ready,problem.deadline))]]
+    seeds=[
+        ids[np.argsort(problem.ready,kind="stable")],
+        ids[np.argsort(problem.deadline,kind="stable")],
+        ids[np.lexsort((problem.deadline,problem.ready))],
+        ids[np.lexsort((problem.ready,problem.deadline))],
+    ]
+    seeds.extend(_spatial_sweep_permutations(problem))
+
+    # Add nearest-neighbour giant tours from several deterministic anchors.
+    anchors=[
+        int(np.argmin(problem.ready)),
+        int(np.argmin(problem.deadline)),
+        int(np.argmax(problem.ready)),
+        int(np.argmax(problem.deadline)),
+    ]
+    for anchor in anchors:
+        seeds.append(_nearest_neighbor_permutation(problem,anchor))
+
     out=[]; seen=set()
     for p in seeds:
         k=p.tobytes()
-        if k not in seen: seen.add(k); out.append(p.copy())
+        if k not in seen:
+            seen.add(k); out.append(p.copy())
     return out
 
 def solve_s0_ga(problem,population_size=24,generations=30,seed=0,elite_fraction=0.25,crossover_probability=0.9):
