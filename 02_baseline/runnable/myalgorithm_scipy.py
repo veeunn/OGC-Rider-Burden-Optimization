@@ -427,7 +427,7 @@ def bundling_123(K, all_orders, all_riders, ready_time_vec, deadline_vec, volume
 
 
 
-def algorithm(K, all_orders, all_riders, dist_mat, timelimit=60):
+def algorithm(K, all_orders, all_riders, dist_mat, timelimit=60, fixed_num_riders=None):
     start_time = time.time()
 
     for r in all_riders:
@@ -599,7 +599,7 @@ def algorithm(K, all_orders, all_riders, dist_mat, timelimit=60):
                             print("Number of times no merged car bundle 5 found: ", car_count5)
         """
 
-        def optimize_bundles(start_time, timelimit, set_bundles, K, gurobi_riders):
+        def optimize_bundles(start_time, timelimit, set_bundles, K, gurobi_riders, fixed_num_riders=None):
             # License-free equivalent of the original binary set-partitioning model.
             # The candidate bundles, objective coefficients, exact-cover constraints,
             # and rider-availability constraints are unchanged.
@@ -627,6 +627,20 @@ def algorithm(K, all_orders, all_riders, dist_mat, timelimit=60):
                 LinearConstraint(Aavail.tocsr(), -np.inf*np.ones(len(rider_types)), ub)
             )
 
+            # Research scenarios S1-S3: hold the active workforce fixed at S0's R0.
+            # One selected bundle corresponds to one active rider assignment.
+            if fixed_num_riders is not None:
+                if fixed_num_riders <= 0:
+                    raise ValueError("fixed_num_riders must be positive.")
+                Acount = np.ones((1, n), dtype=float)
+                constraints.append(
+                    LinearConstraint(
+                        Acount,
+                        np.array([float(fixed_num_riders)]),
+                        np.array([float(fixed_num_riders)]),
+                    )
+                )
+
             left_time = max(timelimit - (time.time() - start_time) + 0.6, 0.2)
             res = milp(
                 c=c,
@@ -644,7 +658,7 @@ def algorithm(K, all_orders, all_riders, dist_mat, timelimit=60):
             print(f"SciPy MILP status={res.status}: {res.message}")
             return all_bundles, cur_obj
 
-        all_bundles, cur_obj = optimize_bundles(start_time, timelimit, set_bundles, K, all_riders)
+        all_bundles, cur_obj = optimize_bundles(start_time, timelimit, set_bundles, K, all_riders, fixed_num_riders)
 
         # Check if the current objective is better than the best one found so far
         if cur_obj < best_obj:
