@@ -1,0 +1,118 @@
+name: Run Stage 2 batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Pilot first, then all 6 Stage 2 instances"
+        required: true
+        default: "pilot"
+        type: choice
+        options: [pilot, all]
+      population_size:
+        description: "NSGA-II population size"
+        required: true
+        default: "12"
+      generations:
+        description: "NSGA-II generations"
+        required: true
+        default: "5"
+      seed:
+        description: "Random seed"
+        required: true
+        default: "0"
+      metric:
+        description: "Equity metric"
+        required: true
+        default: "gini"
+        type: choice
+        options: [gini, std, range, max, cv]
+      timelimit:
+        description: "S0 MILP time limit in seconds"
+        required: true
+        default: "120"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      instances: ${{ steps.matrix.outputs.instances }}
+    steps:
+      - id: matrix
+        env:
+          SCOPE: ${{ inputs.scope }}
+        run: |
+          if [ "$SCOPE" = "pilot" ]; then
+            echo 'instances=["STAGE2_1"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'instances=["STAGE2_1","STAGE2_2","STAGE2_3","STAGE2_4","STAGE2_5","STAGE2_6"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  experiment:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        instance: ${{ fromJSON(needs.prepare.outputs.instances) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore and verify ${{ matrix.instance }}
+        run: |
+          python scripts/restore_split_data.py \
+            --parts-dir 01_data/stage2_parts \
+            --output-dir restored/stage2 \
+            --file "${{ matrix.instance }}.json"
+          python scripts/validate_data.py "restored/stage2/${{ matrix.instance }}.json"
+
+      - name: Run ${{ matrix.instance }}
+        run: |
+          python run_all_scenarios.py \
+            --problem "restored/stage2/${{ matrix.instance }}.json" \
+            --timelimit ${{ inputs.timelimit }} \
+            --population-size ${{ inputs.population_size }} \
+            --generations ${{ inputs.generations }} \
+            --seed ${{ inputs.seed }} \
+            --metric ${{ inputs.metric }} \
+            --output-dir "05_results/${{ matrix.instance }}"
+
+      - name: Upload ${{ matrix.instance }} results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage2-${{ matrix.instance }}
+          path: 05_results/
+          if-no-files-found: warn
+
+  summarize:
+    needs: experiment
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: stage2-*
+          path: collected
+      - name: Aggregate results
+        run: |
+          python scripts/summarize_batch.py \
+            --root collected \
+            --out-dir stage2_summary \
+            --stage-label "Stage 2"
+          cat stage2_summary/stage_2_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage2-summary
+          path: stage2_summary/
