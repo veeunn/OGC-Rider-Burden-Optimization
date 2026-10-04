@@ -1,102 +1,124 @@
-"""Run S0 and persist the baseline workforce size R0.
+"""Run S0 on the same BIKE candidate pool used by S1-S3.
 
 S0 policy
 ---------
-1. BIKE only.
-2. Set BIKE availability to K so the availability constraint is non-binding.
-3. Minimize delivery cost.
-4. Save R0 = number of selected BIKE bundles / active riders.
-
-Example
--------
-python run_s0.py \
-  --problem 01_data/test/TEST_K50_1.json \
-  --timelimit 60
+1. Generate the BIKE-only candidate bundle pool.
+2. Make BIKE availability non-binding.
+3. Solve the exact-cover cost-minimization problem.
+4. Save R0 = number of selected bundles / active riders.
+5. Persist the candidate pool so S1-S3 use the identical feasible route set.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import sys
+import time
 from pathlib import Path
 
-from run_baseline import run_problem
+import numpy as np
+
+ROOT=Path(__file__).resolve().parent
+SRC=ROOT/"03_src"
+sys.path.insert(0,str(SRC))
+
+from candidate_pool import generate_bike_candidate_pool, save_candidate_pool
+from set_partition import cost_optimal_selection
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--problem", required=True)
-    ap.add_argument("--timelimit", type=float, default=60.0)
-    ap.add_argument("--solver", choices=["scipy", "gurobi"], default="scipy")
-    ap.add_argument(
-        "--output-dir",
-        default="05_results/S0",
-        help="Directory for S0 solution and workforce manifest.",
-    )
-    args = ap.parse_args()
+    ap=argparse.ArgumentParser()
+    ap.add_argument("--problem",required=True)
+    ap.add_argument("--timelimit",type=float,default=60.0,
+                    help="MILP time limit after candidate generation.")
+    ap.add_argument("--pool-time-limit",type=float,default=None,
+                    help="Optional candidate-generation time limit.")
+    ap.add_argument("--output-dir",default="05_results/S0")
+    args=ap.parse_args()
 
-    problem_path = Path(args.problem)
-    with problem_path.open("r", encoding="utf-8") as f:
-        prob = json.load(f)
+    problem_path=Path(args.problem)
+    out_dir=Path(args.output_dir)
+    out_dir.mkdir(parents=True,exist_ok=True)
+    stem=problem_path.stem
 
-    K = int(prob["K"])
-    result = run_problem(
+    pool_path=out_dir/f"{stem}_bike_pool.json"
+    solution_path=out_dir/f"{stem}_S0.json"
+    manifest_path=out_dir/f"{stem}_workforce.json"
+
+    pool=generate_bike_candidate_pool(
         problem_path,
-        timelimit=args.timelimit,
-        solver=args.solver,
-        bike_only=True,
-        bike_availability=K,
-        fixed_active_riders=None,
+        include_size4=True,
+        generation_time_limit=args.pool_time_limit,
     )
+    save_candidate_pool(pool,pool_path)
 
-    if not result.get("feasible", False):
-        raise RuntimeError(
-            f"S0 BIKE-only problem is infeasible for {problem_path}: "
-            f"{result.get('infeasibility')}"
-        )
+    t0=time.time()
+    x,res=cost_optimal_selection(pool,time_limit=args.timelimit)
+    solve_time=time.time()-t0
 
-    bike_bundles = [b for b in result["bundles"] if b[0] == "BIKE"]
-    if len(bike_bundles) != result["num_drivers"]:
-        raise RuntimeError(
-            "S0 is intended to be BIKE-only, but a non-BIKE bundle was selected."
-        )
+    selected=np.flatnonzero(x>0)
+    r0=int(selected.size)
+    total_cost=float(sum(pool["candidates"][int(i)]["cost"] for i in selected))
+    avg_cost=total_cost/float(pool["K"])
 
-    r0 = len(bike_bundles)
-    result["scenario"] = "S0"
-    result["R0"] = r0
-    result["workforce_policy"] = "S0-fixed"
-    result["s0_bike_availability"] = K
+    bundles=[
+        ["BIKE",
+         pool["candidates"][int(i)]["shop_seq"],
+         pool["candidates"][int(i)]["dlv_seq"]]
+        for i in selected
+    ]
 
-    out_dir = Path(args.output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    stem = problem_path.stem
-
-    solution_path = out_dir / f"{stem}_S0.json"
-    manifest_path = out_dir / f"{stem}_workforce.json"
-
-    with solution_path.open("w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-
-    manifest = {
-        "problem": result["prob_name"],
-        "problem_file": str(problem_path),
-        "K": K,
-        "scenario": "S0",
-        "R0": r0,
-        "baseline_avg_cost": result["avg_cost"],
-        "baseline_total_cost": result["total_cost"],
-        "s0_bike_availability": K,
-        "solver_backend": result["solver_backend"],
-        "runtime_sec": result["time"],
-        "workforce_policy": "S0-fixed",
-        "equity_population": "active riders only",
+    solution={
+        "scenario":"S0",
+        "problem":pool["problem"],
+        "problem_file":str(problem_path),
+        "K":int(pool["K"]),
+        "R0":r0,
+        "workforce_policy":"S0-fixed",
+        "analysis_scope":"BIKE-only",
+        "equity_population":"active riders only",
+        "total_cost":total_cost,
+        "avg_cost":avg_cost,
+        "num_drivers":r0,
+        "selected_candidate_ids":[int(i) for i in selected],
+        "bundles":bundles,
+        "candidate_pool_file":str(pool_path),
+        "n_candidates":int(pool["n_candidates"]),
+        "candidate_counts_by_bundle_size":pool["candidate_counts_by_bundle_size"],
+        "pool_generation_sec":float(pool["pool_generation_sec"]),
+        "solve_time_sec":float(solve_time),
+        "milp_status":int(res.status),
+        "milp_message":str(res.message),
+        "feasible":True,
     }
-    with manifest_path.open("w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    with solution_path.open("w",encoding="utf-8") as fp:
+        json.dump(solution,fp,ensure_ascii=False,indent=2)
 
-    print(json.dumps(manifest, ensure_ascii=False, indent=2))
+    manifest={
+        "problem":pool["problem"],
+        "problem_file":str(problem_path),
+        "K":int(pool["K"]),
+        "scenario":"S0",
+        "R0":r0,
+        "baseline_avg_cost":avg_cost,
+        "baseline_total_cost":total_cost,
+        "s0_bike_availability":"non-binding",
+        "candidate_pool_file":str(pool_path),
+        "n_candidates":int(pool["n_candidates"]),
+        "solver_backend":"scipy-milp",
+        "solve_time_sec":float(solve_time),
+        "pool_generation_sec":float(pool["pool_generation_sec"]),
+        "workforce_policy":"S0-fixed",
+        "equity_population":"active riders only",
+    }
+    with manifest_path.open("w",encoding="utf-8") as fp:
+        json.dump(manifest,fp,ensure_ascii=False,indent=2)
+
+    print(json.dumps(manifest,ensure_ascii=False,indent=2))
     print(f"S0 solution: {solution_path}")
     print(f"Workforce manifest: {manifest_path}")
+    print(f"Candidate pool: {pool_path}")
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
