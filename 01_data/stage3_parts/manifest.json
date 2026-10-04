@@ -1,0 +1,95 @@
+[
+  {
+    "file": "STAGE3_1.json",
+    "size_bytes": 110941486,
+    "sha256": "b433a686a7076b8b190cda6c626b8254ed993d80614abbec23b97372ae9438ed",
+    "parts": [
+      {
+        "name": "STAGE3_1.json.part000",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_1.json.part001",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_1.json.part002",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_1.json.part003",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_1.json.part004",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_1.json.part005",
+        "size_bytes": 6083886
+      }
+    ]
+  },
+  {
+    "file": "STAGE3_2.json",
+    "size_bytes": 110966649,
+    "sha256": "ce8cc8e3eb0401b225a8a7d6abb9763254f0b5e40fcaa5f4644508e4579425f8",
+    "parts": [
+      {
+        "name": "STAGE3_2.json.part000",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_2.json.part001",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_2.json.part002",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_2.json.part003",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_2.json.part004",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_2.json.part005",
+        "size_bytes": 6109049
+      }
+    ]
+  },
+  {
+    "file": "STAGE3_3.json",
+    "size_bytes": 120589210,
+    "sha256": "30b077d8fdb89355e4c4b25ffcdcfcc49a70eb1a70ba2a5cb813d6b1ec9ef2e3",
+    "parts": [
+      {
+        "name": "STAGE3_3.json.part000",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_3.json.part001",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_3.json.part002",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_3.json.part003",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_3.json.part004",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE3_3.json.part005",
+        "size_bytes": 15731610
+      }
+    ]
+  }
+]
