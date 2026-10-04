@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Generated outputs
+05_results/raw/*
+!05_results/raw/.gitkeep
+06_figures/generated/*
+!06_figures/generated/.gitkeep
+
+# Large/raw data archives
+*.zip
+*.7z
+*.tar
+*.gz
+
+# Temporary files
+*.tmp
+*.log
