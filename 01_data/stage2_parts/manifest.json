@@ -1,0 +1,80 @@
+[
+  {
+    "file": "STAGE2_1.json",
+    "size_bytes": 6970579,
+    "sha256": "80ad2916d8b7b20a88087b78fdc7d01fa4df59a528e2e48ee7d0e8ce7d2438a7",
+    "parts": [
+      {
+        "name": "STAGE2_1.json",
+        "size_bytes": 6970579
+      }
+    ]
+  },
+  {
+    "file": "STAGE2_2.json",
+    "size_bytes": 27864536,
+    "sha256": "64c13476ee70532d58b99472a6f4378f8abc7e47fdb595c05e5cf890ebc0ee4e",
+    "parts": [
+      {
+        "name": "STAGE2_2.json.part000",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE2_2.json.part001",
+        "size_bytes": 6893016
+      }
+    ]
+  },
+  {
+    "file": "STAGE2_3.json",
+    "size_bytes": 6982085,
+    "sha256": "bf8b19e9e73765f99ea0b8f24f1832455ed20c4a057492e4e829acd61a16e516",
+    "parts": [
+      {
+        "name": "STAGE2_3.json",
+        "size_bytes": 6982085
+      }
+    ]
+  },
+  {
+    "file": "STAGE2_4.json",
+    "size_bytes": 27788928,
+    "sha256": "00fd46ee3da7107c5e457c3a8b85e13acf4aa0cb3501da6435ab61d1349697f0",
+    "parts": [
+      {
+        "name": "STAGE2_4.json.part000",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE2_4.json.part001",
+        "size_bytes": 6817408
+      }
+    ]
+  },
+  {
+    "file": "STAGE2_5.json",
+    "size_bytes": 7625384,
+    "sha256": "f1c2b327accf0205d3a8915a710b4ab260fe9fcf6884da11cc8e2019758d70eb",
+    "parts": [
+      {
+        "name": "STAGE2_5.json",
+        "size_bytes": 7625384
+      }
+    ]
+  },
+  {
+    "file": "STAGE2_6.json",
+    "size_bytes": 30240339,
+    "sha256": "a919e180a701b7922732aae3747d825dc6e80b671ea4bc8db504c1fb960b4a74",
+    "parts": [
+      {
+        "name": "STAGE2_6.json.part000",
+        "size_bytes": 20971520
+      },
+      {
+        "name": "STAGE2_6.json.part001",
+        "size_bytes": 9268819
+      }
+    ]
+  }
+]
