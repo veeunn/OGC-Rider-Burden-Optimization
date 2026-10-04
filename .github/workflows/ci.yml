@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install lightweight CI dependencies
+        run: pip install numpy
+      - name: Compile Python sources
+        run: |
+          python -m py_compile run_baseline.py
+          python -m py_compile 02_baseline/runnable/util.py
+          python -m py_compile 02_baseline/runnable/myalgorithm.py
+          python -m py_compile 03_src/data_loader.py
+          python -m py_compile 03_src/route_evaluator.py
+          python -m py_compile 03_src/burden_metrics.py
+          python -m py_compile 03_src/result_exporter.py
+      - name: Validate committed datasets
+        run: |
+          python scripts/validate_data.py 01_data/test/TEST_K50_1.json 01_data/test/TEST_K50_2.json
+          python scripts/validate_data.py 01_data/stage1/STAGE1_1.json 01_data/stage1/STAGE1_2.json
+
+  # Full optimization is intentionally not run in public CI because the supplied
+  # baseline's final set-partitioning step uses Gurobi and requires a valid license.
