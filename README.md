@@ -222,3 +222,41 @@ number of selected bundles = R0
 ```
 
 so equity improvements cannot be produced merely by changing workforce size.
+
+
+## S1-S3 NSGA-II implementation
+
+The repository now contains a complete fixed-workforce NSGA-II pipeline:
+
+```text
+03_src/candidate_pool.py
+03_src/set_partition.py
+03_src/nsga2_solver.py
+run_s0.py
+run_equity.py
+run_all_scenarios.py
+```
+
+The key design is that **S0 and S1-S3 use the identical BIKE candidate route pool**. S0 solves cost-minimizing exact cover on that pool and saves `R0`; S1-S3 then optimize cost and one burden inequality objective while enforcing both exact order coverage and exactly `R0` selected routes.
+
+Run the whole pipeline for one instance:
+
+```bash
+python run_all_scenarios.py \
+  --problem 01_data/test/TEST_K50_1.json \
+  --timelimit 60 \
+  --population-size 40 \
+  --generations 50 \
+  --seed 0 \
+  --metric gini
+```
+
+The default second objective is **Gini**, while `std`, `range`, `max`, and `cv` remain available for sensitivity analysis.
+
+NSGA-II chromosomes are binary selections over candidate BIKE bundles. Every offspring is repaired through an exact-cover MILP before evaluation, guaranteeing:
+
+- every order is covered exactly once;
+- exactly `R0` active riders are used;
+- only feasible candidate routes generated from the verified OGC timing/capacity logic are selected.
+
+Each scenario output includes its Pareto set, rider-level burden values, Price of Fairness relative to S0, and a computed knee-point candidate.
