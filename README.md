@@ -175,3 +175,50 @@ The SciPy backend is stored separately as `myalgorithm_scipy.py`; the original G
 ## Continuous integration
 
 `.github/workflows/ci.yml` checks Python syntax, validates committed OGC instances, runs a license-free baseline smoke test, and generates an S1-S3 burden report on a small test instance.
+
+
+## Fixed-workforce research workflow
+
+The main study workflow is now:
+
+```text
+S0 cost minimization
+   ↓
+save R0 = active BIKE riders
+   ↓
+S1 / S2 / S3 all inherit exactly R0 riders
+```
+
+Run S0:
+
+```bash
+python run_s0.py \
+  --problem 01_data/test/TEST_K50_1.json \
+  --solver scipy \
+  --timelimit 60
+```
+
+This writes:
+
+```text
+05_results/S0/TEST_K50_1_S0.json
+05_results/S0/TEST_K50_1_workforce.json
+```
+
+The workforce manifest contains the baseline cost and `R0`.
+
+Check the inherited scenario configuration:
+
+```bash
+python run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
+python run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
+python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
+```
+
+All future S1-S3 optimizers must enforce:
+
+```text
+number of selected bundles = R0
+```
+
+so equity improvements cannot be produced merely by changing workforce size.
