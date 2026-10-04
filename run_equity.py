@@ -1,11 +1,8 @@
 """Run S1-S3 fixed-workforce NSGA-II experiments.
 
-Workflow
---------
-1. Read S0 workforce manifest and inherit R0.
-2. Generate/load the same BIKE candidate bundle pool.
-3. Run NSGA-II with exact-cover + exact-R0 repair.
-4. Save full population, Pareto set, and selected summary points.
+Each equity scenario inherits the exact S0 route selection as an initial
+solution. This guarantees that the cost-optimal baseline is present in the
+search population and provides the correct within-dimension equity reference.
 """
 from __future__ import annotations
 
@@ -22,7 +19,7 @@ sys.path.insert(0,str(SRC))
 
 from candidate_pool import generate_bike_candidate_pool, load_candidate_pool, save_candidate_pool
 from workforce import load_workforce_manifest
-from nsga2_solver import solve
+from nsga2_solver import solve, inequality
 
 
 def _solution_from_x(pool: dict, x: np.ndarray):
@@ -33,13 +30,40 @@ def _solution_from_x(pool: dict, x: np.ndarray):
     return bundles
 
 
-def _burdens(pool: dict, x: np.ndarray, scenario: str):
-    field={
+def _metric_field(scenario: str) -> str:
+    return {
         "S1":"order_count",
         "S2":"active_route_duration_sec",
         "S3":"waiting_time_sec",
     }[scenario]
-    return [float(pool["candidates"][int(i)][field]) for i in np.flatnonzero(x > 0)]
+
+
+def _burdens(pool: dict, x: np.ndarray, scenario: str):
+    field=_metric_field(scenario)
+    return np.asarray(
+        [float(pool["candidates"][int(i)][field]) for i in np.flatnonzero(x > 0)],
+        dtype=float,
+    )
+
+
+def _burden_summary(values: np.ndarray) -> dict:
+    if values.size == 0:
+        raise ValueError("No active-rider burdens.")
+    mean=float(np.mean(values))
+    std=float(np.std(values,ddof=0))
+    zeros=int(np.sum(values == 0))
+    return {
+        "n_riders":int(values.size),
+        "mean":mean,
+        "min":float(np.min(values)),
+        "max":float(np.max(values)),
+        "std":std,
+        "range":float(np.max(values)-np.min(values)),
+        "gini":float(inequality(values,"gini")),
+        "cv":float(std/mean) if mean != 0 else 0.0,
+        "zero_burden_riders":zeros,
+        "zero_burden_share":float(zeros/values.size),
+    }
 
 
 def _knee_index(points):
@@ -53,12 +77,11 @@ def _knee_index(points):
     a=z[np.argmin(z[:,0])]
     b=z[np.argmin(z[:,1])]
     ab=b-a
-    denom=np.linalg.norm(ab)
+    denom=float(np.linalg.norm(ab))
     if denom==0:
         return int(np.argmin(z.sum(axis=1)))
-    d=[]
-    for p in z:
-        d.append(abs(np.cross(ab,p-a))/denom)
+    # Perpendicular distance to the line joining the two normalized extremes.
+    d=[abs(ab[0]*(p-a)[1]-ab[1]*(p-a)[0])/denom for p in z]
     return int(np.argmax(d))
 
 
@@ -100,6 +123,22 @@ def main():
     if str(pool["problem"]) != str(manifest["problem"]):
         raise ValueError("Candidate pool problem and workforce manifest problem do not match.")
 
+    selected_ids=manifest.get("selected_candidate_ids")
+    if not selected_ids:
+        raise ValueError(
+            "Workforce manifest lacks S0 selected_candidate_ids. "
+            "Re-run S0 with the current code before S1-S3."
+        )
+
+    x0=np.zeros(len(pool["candidates"]),dtype=np.int8)
+    x0[np.asarray(selected_ids,dtype=int)]=1
+    if int(x0.sum()) != r0:
+        raise ValueError("S0 selected route count does not equal R0.")
+
+    baseline_burdens=_burdens(pool,x0,scenario)
+    baseline_ineq=float(inequality(baseline_burdens,args.metric))
+    baseline_burden_summary=_burden_summary(baseline_burdens)
+
     result=solve(
         pool,
         scenario=scenario,
@@ -109,34 +148,40 @@ def main():
         generations=args.generations,
         seed=args.seed,
         repair_time_limit=args.repair_time_limit,
+        initial_solutions=[x0],
     )
 
+    baseline_cost=float(manifest["baseline_avg_cost"])
     pareto=[]
     for i in result.pareto_indices:
         x=result.population[i]
         cost,ineq=result.objectives[i]
+        burdens=_burdens(pool,x,scenario)
+        pof=((float(cost)-baseline_cost)/baseline_cost*100.0) if baseline_cost != 0 else None
+        improvement=((baseline_ineq-float(ineq))/baseline_ineq*100.0) if baseline_ineq != 0 else None
         pareto.append({
             "population_index":int(i),
             "avg_cost":float(cost),
             "inequality":float(ineq),
+            "price_of_fairness_pct":pof,
+            "equity_improvement_pct_vs_s0":improvement,
+            "is_s0_baseline":bool(np.array_equal(x,x0)),
             "selected_riders":int(x.sum()),
             "selected_candidate_ids":[int(j) for j in np.flatnonzero(x > 0)],
-            "burdens":_burdens(pool,x,scenario),
+            "burdens":[float(v) for v in burdens],
+            "burden_summary":_burden_summary(burdens),
             "bundles":_solution_from_x(pool,x),
         })
 
     pareto=sorted(pareto,key=lambda d:(d["avg_cost"],d["inequality"]))
     knee=None
+    lowest_cost=None
+    lowest_inequality=None
     if pareto:
+        lowest_cost=min(pareto,key=lambda d:(d["avg_cost"],d["inequality"]))
+        lowest_inequality=min(pareto,key=lambda d:(d["inequality"],d["avg_cost"]))
         k=_knee_index([(p["avg_cost"],p["inequality"]) for p in pareto])
         knee=pareto[k]
-
-    baseline_cost=float(manifest["baseline_avg_cost"])
-    for p in pareto:
-        p["price_of_fairness_pct"]=(
-            (p["avg_cost"]-baseline_cost)/baseline_cost*100.0
-            if baseline_cost != 0 else None
-        )
 
     out={
         "scenario":scenario,
@@ -146,16 +191,21 @@ def main():
         "R0":r0,
         "workforce_policy":"S0-fixed",
         "equity_population":"active riders only",
+        "burden_field":_metric_field(scenario),
         "inequality_metric":args.metric,
         "population_size":args.population_size,
         "generations":args.generations,
         "seed":args.seed,
         "baseline_avg_cost":baseline_cost,
+        "baseline_inequality":baseline_ineq,
+        "baseline_burden_summary":baseline_burden_summary,
         "n_candidates":pool["n_candidates"],
         "candidate_counts_by_bundle_size":pool["candidate_counts_by_bundle_size"],
         "n_pareto":len(pareto),
         "pareto":pareto,
+        "lowest_cost_point":lowest_cost,
         "knee_point":knee,
+        "lowest_inequality_point":lowest_inequality,
     }
 
     out_dir=Path(args.output_dir)/scenario
@@ -164,17 +214,28 @@ def main():
     with out_path.open("w",encoding="utf-8") as f:
         json.dump(out,f,ensure_ascii=False,indent=2)
 
+    def compact(p):
+        if p is None:
+            return None
+        return {
+            "avg_cost":p["avg_cost"],
+            "inequality":p["inequality"],
+            "equity_improvement_pct_vs_s0":p["equity_improvement_pct_vs_s0"],
+            "price_of_fairness_pct":p["price_of_fairness_pct"],
+            "is_s0_baseline":p["is_s0_baseline"],
+        }
+
     print(json.dumps({
         "scenario":scenario,
         "problem":pool["problem"],
         "R0":r0,
         "n_candidates":pool["n_candidates"],
+        "baseline_inequality":baseline_ineq,
+        "baseline_zero_burden_share":baseline_burden_summary["zero_burden_share"],
         "n_pareto":len(pareto),
-        "knee_point":None if knee is None else {
-            "avg_cost":knee["avg_cost"],
-            "inequality":knee["inequality"],
-            "price_of_fairness_pct":knee["price_of_fairness_pct"],
-        },
+        "lowest_cost_point":compact(lowest_cost),
+        "knee_point":compact(knee),
+        "lowest_inequality_point":compact(lowest_inequality),
         "output":str(out_path),
     },ensure_ascii=False,indent=2))
 
