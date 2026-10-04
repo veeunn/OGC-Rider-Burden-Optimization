@@ -73,3 +73,105 @@ Repository scaffold initialized. Next steps are:
 4. finalize the equity function,
 5. run S0-S3,
 6. populate `05_results/`, `06_figures/`, and `07_report/`.
+
+
+## Quick start
+
+Clone the repository and create the Python environment:
+
+```bash
+git clone https://github.com/veeunn/OGC-Rider-Burden-Optimization.git
+cd OGC-Rider-Burden-Optimization
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 1. Validate the committed OGC data
+
+```bash
+python scripts/validate_data.py \
+  01_data/test/TEST_K50_1.json \
+  01_data/test/TEST_K50_2.json \
+  01_data/stage1/STAGE1_1.json \
+  01_data/stage1/STAGE1_2.json
+```
+
+### 2. Run the supplied baseline
+
+The default runner uses a **license-free SciPy MILP backend** for the final set-partitioning step while preserving the supplied bundle-generation logic and mathematical model.
+
+```bash
+python run_baseline.py \
+  --problem 01_data/test/TEST_K50_1.json \
+  --solver scipy \
+  --timelimit 60 \
+  --save 05_results/raw/TEST_K50_1_baseline.json
+```
+
+To reproduce the original Gurobi backend instead:
+
+```bash
+pip install -r requirements-gurobi.txt
+python run_baseline.py --problem 01_data/test/TEST_K50_1.json --solver gurobi --timelimit 60
+```
+
+A valid Gurobi license is required for the Gurobi backend.
+
+### 3. Calculate S1-S3 burden statistics
+
+```bash
+python run_burden_report.py \
+  --problem 01_data/test/TEST_K50_1.json \
+  --solution 05_results/raw/TEST_K50_1_baseline.json \
+  --rider-type BIKE \
+  --save 05_results/raw/TEST_K50_1_burden.json
+```
+
+This produces separate rider-level and distributional results for:
+
+- S1 Order Count,
+- S2 Active Route Duration,
+- S3 Waiting Time.
+
+### BIKE-only runs
+
+```bash
+python run_baseline.py \
+  --problem 01_data/stage1/STAGE1_2.json \
+  --solver scipy \
+  --timelimit 100 \
+  --bike-only
+```
+
+`--bike-only` preserves the original BIKE availability while setting WALK/CAR availability to zero.
+
+If a methodological experiment intentionally changes BIKE availability, it must be explicit:
+
+```bash
+python run_baseline.py ... --bike-only --bike-availability 100
+```
+
+Availability overrides must never be silently mixed with the original OGC constraints.
+
+## Original vs runnable baseline
+
+The exact supplied files are preserved under:
+
+```text
+02_baseline/original/
+```
+
+Runnable copies are under:
+
+```text
+02_baseline/runnable/
+```
+
+The original `util.py` contains two evaluator/plotting call sites that pass `rider.T` to a function whose definition expects the Rider object. The runnable copy fixes only those call sites. The source-level audit is documented in `07_report/06_baseline_code_audit.md`.
+
+The SciPy backend is stored separately as `myalgorithm_scipy.py`; the original Gurobi algorithm is not overwritten.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` checks Python syntax, validates committed OGC instances, runs a license-free baseline smoke test, and generates an S1-S3 burden report on a small test instance.
