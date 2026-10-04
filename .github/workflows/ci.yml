@@ -28,17 +28,22 @@ jobs:
           python -m py_compile 03_src/route_evaluator.py
           python -m py_compile 03_src/burden_metrics.py
           python -m py_compile 03_src/result_exporter.py
+          python -m py_compile 03_src/candidate_pool.py
+          python -m py_compile 03_src/set_partition.py
+          python -m py_compile 03_src/nsga2_solver.py
+          python -m py_compile run_equity.py
+          python -m py_compile run_all_scenarios.py
       - name: Validate committed datasets
         run: |
           python scripts/validate_data.py 01_data/test/TEST_K50_1.json 01_data/test/TEST_K50_2.json
           python scripts/validate_data.py 01_data/stage1/STAGE1_1.json 01_data/stage1/STAGE1_2.json
       - name: Run S0 workforce smoke test
         run: |
-          python run_s0.py --problem 01_data/test/TEST_K50_1.json --solver scipy --timelimit 20 --output-dir 05_results/S0
+          python run_s0.py --problem 01_data/test/TEST_K50_1.json --timelimit 20 --output-dir 05_results/S0
           python run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
           python run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
           python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
           python run_burden_report.py --problem 01_data/test/TEST_K50_1.json --solution 05_results/S0/TEST_K50_1_S0.json --rider-type BIKE --save 05_results/raw/ci_TEST_K50_1_burden.json
 
-  # Full optimization is intentionally not run in public CI because the supplied
-  # baseline's final set-partitioning step uses Gurobi and requires a valid license.
+  # CI uses the license-free SciPy MILP backend. Full NSGA-II runs are kept out of
+  # CI because they are computational experiments rather than lightweight smoke tests.
