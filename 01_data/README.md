@@ -1,45 +1,49 @@
 # 01_data
 
-This directory documents the OGC 2024 problem instances used in the study.
+OGC 2024 problem instances used in this study.
 
-## Supplied source archives
+The user has confirmed that the supplied competition data may be included in this research repository.
 
-The research materials supplied for this project include:
-
-- `stage1_problems`
-- `stage2_problems`
-- `stage3_problems`
-
-The original archives are intentionally **not committed yet**. Before public release, the redistribution conditions for the OGC dataset must be checked. In addition, the Stage 3 archive is large enough that normal GitHub file storage may be inappropriate.
-
-## Planned layout
+## Layout
 
 ```text
 01_data/
 ├── README.md
-├── stage1/
-├── stage2/
-└── stage3/
+├── test/
+└── stage1/
 ```
 
-## Analysis scope
+## Committed reproducibility set
 
-The study uses **BIKE riders only** to control for transport-mode heterogeneity.
+At minimum, the repository contains small test instances and Stage 1 instances required for the baseline smoke/reproduction workflow.
 
-## Relevant instance fields
+All JSON files use the original OGC schema and are not transformed before optimization.
 
-Based on the supplied OGC problem description, the instances contain:
+## Schema
 
-- rider type and rider attributes,
-- rider speed,
-- capacity,
-- fixed and variable cost,
-- service time,
-- rider availability,
-- order pickup and delivery coordinates,
-- ready time,
-- order volume,
-- deadline,
-- and a 2K × 2K distance matrix.
+`RIDERS` rows:
 
-The exact mapping from raw fields to code variables will be documented after the original baseline parser is verified.
+```text
+[type, speed, capacity, variable_cost_per_100m, fixed_cost, service_time, availability]
+```
+
+`ORDERS` rows:
+
+```text
+[order_id, order_time, pickup_lat, pickup_lon,
+ delivery_lat, delivery_lon, preparation_time, volume, deadline]
+```
+
+`ready_time = order_time + preparation_time`.
+
+`DIST` is a `2K × 2K` distance matrix for `K` orders.
+
+## Validation
+
+Run:
+
+```bash
+python scripts/validate_data.py 01_data/test/TEST_K50_1.json
+```
+
+The validator checks order count, distance-matrix shape, and the presence of BIKE rider data.
