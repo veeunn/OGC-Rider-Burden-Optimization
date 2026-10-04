@@ -21,6 +21,9 @@ jobs:
           python -m py_compile 02_baseline/runnable/myalgorithm.py
           python -m py_compile 02_baseline/runnable/myalgorithm_scipy.py
           python -m py_compile run_burden_report.py
+          python -m py_compile run_s0.py
+          python -m py_compile run_equity_config.py
+          python -m py_compile 03_src/workforce.py
           python -m py_compile 03_src/data_loader.py
           python -m py_compile 03_src/route_evaluator.py
           python -m py_compile 03_src/burden_metrics.py
@@ -29,10 +32,13 @@ jobs:
         run: |
           python scripts/validate_data.py 01_data/test/TEST_K50_1.json 01_data/test/TEST_K50_2.json
           python scripts/validate_data.py 01_data/stage1/STAGE1_1.json 01_data/stage1/STAGE1_2.json
-      - name: Run license-free baseline smoke test
+      - name: Run S0 workforce smoke test
         run: |
-          python run_baseline.py --problem 01_data/test/TEST_K50_1.json --solver scipy --timelimit 20 --save 05_results/raw/ci_TEST_K50_1.json
-          python run_burden_report.py --problem 01_data/test/TEST_K50_1.json --solution 05_results/raw/ci_TEST_K50_1.json --rider-type BIKE --save 05_results/raw/ci_TEST_K50_1_burden.json
+          python run_s0.py --problem 01_data/test/TEST_K50_1.json --solver scipy --timelimit 20 --output-dir 05_results/S0
+          python run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
+          python run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
+          python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
+          python run_burden_report.py --problem 01_data/test/TEST_K50_1.json --solution 05_results/S0/TEST_K50_1_S0.json --rider-type BIKE --save 05_results/raw/ci_TEST_K50_1_burden.json
 
   # Full optimization is intentionally not run in public CI because the supplied
   # baseline's final set-partitioning step uses Gurobi and requires a valid license.
