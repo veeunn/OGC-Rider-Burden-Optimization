@@ -85,12 +85,26 @@ jobs:
                   continue
               d = json.loads(files[-1].read_text())
               knee = d.get("knee_point")
-              lines += ["", f"## {scenario}", f"- Pareto solutions: {d.get('n_pareto')}"]
+              lowest_cost = d.get("lowest_cost_point")
+              lowest_ineq = d.get("lowest_inequality_point")
+              lines += [
+                  "",
+                  f"## {scenario}",
+                  f"- Baseline inequality: {d.get('baseline_inequality')}",
+                  f"- Baseline zero-burden share: {d.get('baseline_burden_summary', {}).get('zero_burden_share')}",
+                  f"- Pareto solutions: {d.get('n_pareto')}",
+              ]
+              if lowest_cost:
+                  lines += [
+                      f"- Lowest-cost point: cost={lowest_cost.get('avg_cost')}, inequality={lowest_cost.get('inequality')}, equity improvement={lowest_cost.get('equity_improvement_pct_vs_s0')}%, PoF={lowest_cost.get('price_of_fairness_pct')}%",
+                  ]
               if knee:
                   lines += [
-                      f"- Knee average cost: {knee.get('avg_cost')}",
-                      f"- Knee inequality: {knee.get('inequality')}",
-                      f"- Knee Price of Fairness (%): {knee.get('price_of_fairness_pct')}",
+                      f"- Knee point: cost={knee.get('avg_cost')}, inequality={knee.get('inequality')}, equity improvement={knee.get('equity_improvement_pct_vs_s0')}%, PoF={knee.get('price_of_fairness_pct')}%",
+                  ]
+              if lowest_ineq:
+                  lines += [
+                      f"- Lowest-inequality point: cost={lowest_ineq.get('avg_cost')}, inequality={lowest_ineq.get('inequality')}, equity improvement={lowest_ineq.get('equity_improvement_pct_vs_s0')}%, PoF={lowest_ineq.get('price_of_fairness_pct')}%",
                   ]
 
           Path("experiment_summary.md").write_text("\n".join(lines), encoding="utf-8")
