@@ -1,0 +1,32 @@
+\ Model Set Covering_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ cover_26: x[20] = 1
+ cover_27: x[21] = 1
+ cover_28: x[22] = 1
+ cover_30: x[23] = 1
+ cover_31: x[24] = 1
+ cover_32: x[25] = 1
+ cover_35: x[26] = 1
+ cover_36: x[27] = 1
+ cover_37: x[28] = 1
+ cover_38: x[29] = 1
+ cover_41: x[30] = 1
+ cover_42: x[31] = 1
+ cover_43: x[32] = 1
+ cover_44: x[33] = 1
+ cover_47: x[34] = 1
+ cover_49: x[35] = 1
+ rider_limit_WALK: x[0] + x[1] + x[2] + x[3] + x[4] + x[5] + x[6] + x[7]
+   + x[8] + x[9] + x[10] + x[11] + x[12] + x[13] + x[14] + x[15] + x[16]
+   + x[17] + x[18] + x[19] + x[20] + x[21] + x[22] + x[23] + x[24] + x[25]
+   + x[26] + x[27] + x[28] + x[29] + x[30] + x[31] + x[32] + x[33] + x[34]
+   + x[35] <= 15
+Bounds
+Binaries
+ x[0] x[1] x[2] x[3] x[4] x[5] x[6] x[7] x[8] x[9] x[10] x[11] x[12] x[13]
+ x[14] x[15] x[16] x[17] x[18] x[19] x[20] x[21] x[22] x[23] x[24] x[25]
+ x[26] x[27] x[28] x[29] x[30] x[31] x[32] x[33] x[34] x[35]
+End
