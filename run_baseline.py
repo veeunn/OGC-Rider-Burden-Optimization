@@ -24,7 +24,6 @@ sys.path.insert(0, str(BASELINE))
 
 import numpy as np
 from util import Order, Rider, solution_check
-from myalgorithm import algorithm
 
 
 def build_objects(prob: dict, bike_only: bool, bike_availability: int | None):
@@ -50,6 +49,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--problem", required=True, help="Path to an OGC JSON instance")
     ap.add_argument("--timelimit", type=float, default=60.0)
+    ap.add_argument("--solver", choices=["scipy","gurobi"], default="scipy",
+                    help="Final set-partitioning backend. scipy is license-free.")
     ap.add_argument("--save", default=None, help="Optional JSON output path")
     ap.add_argument("--bike-only", action="store_true",
                     help="Set WALK/CAR availability to zero.")
@@ -64,6 +65,11 @@ def main() -> None:
     K = prob["K"]
     orders, riders, dist = build_objects(prob, args.bike_only, args.bike_availability)
 
+    if args.solver == "scipy":
+        from myalgorithm_scipy import algorithm
+    else:
+        from myalgorithm import algorithm
+
     t0 = time.time()
     solution = algorithm(K, orders, riders, dist, args.timelimit)
     elapsed = time.time() - t0
@@ -77,6 +83,7 @@ def main() -> None:
     checked["prob_name"] = prob.get("name", problem_path.stem)
     checked["prob_file"] = str(problem_path)
     checked["analysis_scope"] = "BIKE-only" if args.bike_only else "original mixed-mode"
+    checked["solver_backend"] = args.solver
     checked["bike_availability_override"] = args.bike_availability
 
     print(json.dumps(checked, ensure_ascii=False, indent=2))
