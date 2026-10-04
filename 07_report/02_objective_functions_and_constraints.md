@@ -48,17 +48,15 @@ f_{cost}(x)=\frac{\sum_b C_b}{K}
 
 where \(K\) is the number of orders in the instance.
 
-### BASELINE-CODE CHECK REQUIRED
+### Verified from supplied baseline code
 
-Before final analysis, verify the supplied code for:
+The supplied `util.py` implements:
 
-- exact distance aggregation,
-- cost rounding,
-- any integer conversion,
-- whether fixed cost is applied exactly once per bundle/rider,
-- final objective rounding/comparison behavior.
+```python
+fixed_cost + dist / 100.0 * var_cost
+```
 
-The competition documentation notes that numerical comparison is performed after rounding objective values to a stated precision, so reporting and internal optimization precision must be separated carefully.
+Bundle distance is the sum of pickup-to-pickup arcs, the last-pickup-to-first-delivery arc, and delivery-to-delivery arcs. There is no depot/pre-route distance. The baseline algorithm minimizes total selected bundle cost; because K is fixed, this is equivalent to minimizing the reported average cost `total_cost / K`.
 
 ---
 
@@ -137,9 +135,9 @@ with:
 - resulting time in seconds,
 - service time added to movement time.
 
-### BASELINE-CODE CHECK REQUIRED
+### Verified from supplied baseline code
 
-Verify exactly when service time is added in the route simulation so that Active Route Duration is not double-counted.
+The baseline constructs `rider.T = round(DIST / speed + service_time)`. The route clock starts at the first pickup's ready time, so there is no pre-route travel/service term. Every subsequent transition contributes one entry from `rider.T`. For S2, Active Route Duration is therefore calculated as the sum of these transition-time entries, excluding explicit pickup waiting.
 
 ---
 
@@ -171,17 +169,15 @@ The OGC description allows waiting to satisfy ready-time feasibility and states 
 
 Therefore, Waiting Time must be reconstructed from the **exact baseline route clock**, not from an independent timing approximation.
 
-### BASELINE-CODE CHECK REQUIRED
+### Verified from supplied baseline code
 
-Verify:
+The baseline starts the route clock at the first pickup's ready time. Hence the first pickup creates no modeled waiting burden. At each later pickup, waiting is exactly:
 
-- route start-time convention,
-- first-pickup timing,
-- arrival/departure timestamps,
-- how waiting is represented internally,
-- whether the baseline shifts route start time to avoid unnecessary waiting.
+[
+\max(0, ready_i - (t_{prev}+T_{prev,i}))
+]
 
-S3 should not be finalized until these points are confirmed from source code.
+because the baseline updates the clock using `max(t + rider.T, ready_time)`. No ready-time waits are applied after the pickup phase.
 
 ---
 
@@ -330,13 +326,13 @@ The rule used to select a representative point from the Pareto frontier—e.g., 
 |---|---:|---:|
 | BIKE-only study scope | Verified | N/A |
 | Order Count definition | Verified | To implement |
-| Active Route Duration definition | Verified | Check timing implementation |
-| Waiting Time definition | Verified | **Must verify route clock** |
-| Average delivery cost objective | Verified | Check exact arithmetic |
-| Capacity constraint | Verified | Check implementation |
-| Ready-time constraint | Verified | Check implementation |
-| Deadline constraint | Verified | Check implementation |
-| All-pickups-before-deliveries rule | Verified | Check implementation |
-| Order satisfaction | Verified | Check implementation |
-| One bundle per rider | Verified | Check implementation |
-| Rider availability | Verified | Check implementation |
+| Active Route Duration definition | Verified | **Verified from get_pd_times()** |
+| Waiting Time definition | Verified | **Verified from get_pd_times()** |
+| Average delivery cost objective | Verified | **Verified from calculate_cost()/objective** |
+| Capacity constraint | Verified | **Verified** |
+| Ready-time constraint | Verified | **Verified** |
+| Deadline constraint | Verified | **Verified** |
+| All-pickups-before-deliveries rule | Verified | **Verified** |
+| Order satisfaction | Verified | **Verified in solution_check/set partitioning** |
+| One bundle per rider | Verified | **Represented through rider availability counts** |
+| Rider availability | Verified | **Verified in set-partitioning constraints** |
