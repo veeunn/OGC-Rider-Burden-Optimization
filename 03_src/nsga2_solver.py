@@ -181,10 +181,30 @@ def mutate(rng, x: np.ndarray, probability: float):
     return y
 
 
+def selection_is_feasible(pool: dict, x: np.ndarray, r0: int) -> bool:
+    """Check exact order coverage and the fixed-R0 workforce constraint."""
+    z = np.asarray(x, dtype=np.int8)
+    n = len(pool["candidates"])
+    if z.shape != (n,) or int(z.sum()) != int(r0):
+        return False
+
+    coverage = np.zeros(int(pool["K"]), dtype=np.int16)
+    for idx in np.flatnonzero(z > 0):
+        for order_id in pool["candidates"][int(idx)]["shop_seq"]:
+            coverage[int(order_id)] += 1
+    return bool(np.all(coverage == 1))
+
+
 def repair(pool: dict, x: np.ndarray, r0: int, rng, repair_time_limit: float | None):
+    # Do not solve another MILP when the target is already feasible.  This is
+    # especially important for the exact S0 seed supplied to S1-S3.
+    z = np.asarray(x, dtype=np.int8)
+    if selection_is_feasible(pool, z, r0):
+        return z.copy()
+
     repaired, _ = nearest_feasible_selection(
         pool,
-        x,
+        z,
         fixed_num_riders=r0,
         rng=rng,
         time_limit=repair_time_limit,
@@ -210,6 +230,7 @@ class NSGA2Result:
     pareto_indices: list[int]
     generations: int
     seed: int
+    repair_failures: int
 
 
 def solve(
@@ -238,20 +259,50 @@ def solve(
     rng = np.random.default_rng(seed)
 
     population = []
+    repair_failures = 0
+
+    def safe_repair(target: np.ndarray, fallback: np.ndarray | None = None) -> np.ndarray:
+        nonlocal repair_failures
+        try:
+            return repair(pool, target, r0, rng, repair_time_limit)
+        except RuntimeError as exc:
+            # A HiGHS time limit with no primal solution should not terminate a
+            # smoke run.  Preserve a known feasible parent/seed and record the
+            # event so final experiments can reject under-explored settings.
+            if fallback is not None and selection_is_feasible(pool, fallback, r0):
+                repair_failures += 1
+                return np.asarray(fallback, dtype=np.int8).copy()
+            raise exc
+
     if initial_solutions:
         for x in initial_solutions:
-            population.append(repair(pool, np.asarray(x, dtype=np.int8), r0, rng, repair_time_limit))
+            population.append(
+                safe_repair(np.asarray(x, dtype=np.int8), fallback=None)
+            )
 
-    # Diversified MILP-repaired random starts.
+    if not population:
+        raise ValueError("At least one feasible initial solution is required.")
+
+    # Diversify around S0 first.  Large candidate pools can make a global
+    # random exact-cover repair expensive, so failed repairs fall back to S0
+    # rather than aborting the whole scenario.
+    base_seed = population[0].copy()
     attempts = 0
-    while len(population) < population_size:
+    max_attempts = max(population_size * 2, 8)
+    while len(population) < population_size and attempts < max_attempts:
         attempts += 1
-        raw = (rng.random(n) < min(0.25, max(r0 * 2 / max(n, 1), 0.01))).astype(np.int8)
-        population.append(repair(pool, raw, r0, rng, repair_time_limit))
+        raw = base_seed.copy()
+        flip_probability = min(0.02, max(2.0 / max(n, 1), 0.001))
+        flips = rng.random(n) < flip_probability
+        raw[flips] = 1 - raw[flips]
+        population.append(safe_repair(raw, fallback=base_seed))
         population = deduplicate(population)
-        if attempts > population_size * 20 and len(population) < population_size:
-            # Exact-cover landscape may have very few feasible solutions.
-            population.append(population[rng.integers(0, len(population))].copy())
+
+    # A smoke test is allowed to continue with duplicate feasible seeds.  The
+    # repair_failures diagnostic tells us whether the settings are adequate
+    # for a final experiment.
+    while len(population) < population_size:
+        population.append(base_seed.copy())
 
     population = population[:population_size]
 
@@ -266,9 +317,9 @@ def solve(
             c1, c2 = crossover(rng, p1, p2, crossover_probability)
             c1 = mutate(rng, c1, mutation_probability)
             c2 = mutate(rng, c2, mutation_probability)
-            offspring.append(repair(pool, c1, r0, rng, repair_time_limit))
+            offspring.append(safe_repair(c1, fallback=p1))
             if len(offspring) < population_size:
-                offspring.append(repair(pool, c2, r0, rng, repair_time_limit))
+                offspring.append(safe_repair(c2, fallback=p2))
 
         combined = deduplicate(population + offspring)
         combined_obj = [evaluate(pool, x, scenario, metric) for x in combined]
@@ -299,4 +350,5 @@ def solve(
         pareto_indices=pareto,
         generations=generations,
         seed=seed,
+        repair_failures=repair_failures,
     )
