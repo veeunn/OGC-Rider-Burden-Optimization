@@ -3,10 +3,15 @@
 Representation
 --------------
 A chromosome is a binary vector over a shared BIKE candidate bundle pool.
-Every evaluated individual is repaired by an exact-cover MILP so that:
+Individuals are maintained as exact-cover selections so that:
 
 1. every order is covered exactly once; and
 2. exactly R0 bundles / active riders are selected.
+
+The current Stage 1 implementation uses feasibility-preserving two-route
+exchange moves as the primary variation operator. This avoids repeatedly
+solving an exact-cover repair MILP for large candidate pools while keeping
+the NSGA-II non-dominated sorting and crowding-distance selection framework.
 
 Objectives
 ----------
@@ -23,6 +28,7 @@ selected explicitly for sensitivity analysis.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import combinations
 import math
 from typing import Iterable
 
@@ -180,6 +186,107 @@ def mutate(rng, x: np.ndarray, probability: float):
     y[flips] = 1 - y[flips]
     return y
 
+def _subset_candidate_index(pool: dict) -> dict[frozenset[int], list[int]]:
+    """Map each unordered order subset to candidate-route ids."""
+    out: dict[frozenset[int], list[int]] = {}
+    for cid, candidate in enumerate(pool["candidates"]):
+        key = frozenset(int(i) for i in candidate["shop_seq"])
+        out.setdefault(key, []).append(cid)
+    return out
+
+
+def feasible_route_exchange(
+    pool: dict,
+    x: np.ndarray,
+    rng,
+    subset_index: dict[frozenset[int], list[int]],
+    *,
+    max_tries: int = 50,
+) -> np.ndarray:
+    """Return a feasible fixed-R0 neighbor using a 2-route exchange.
+
+    Two selected routes are removed. Their union of orders is repartitioned
+    into two feasible candidate routes from the same candidate pool. Because
+    the union is preserved and two routes replace two routes, exact coverage
+    and R0 are preserved without solving a repair MILP.
+    """
+    y0 = np.asarray(x, dtype=np.int8)
+    selected = np.flatnonzero(y0 > 0)
+    if selected.size < 2:
+        return y0.copy()
+
+    candidates = pool["candidates"]
+    max_bundle_size = max(
+        (len(candidate["shop_seq"]) for candidate in candidates),
+        default=1,
+    )
+
+    for _ in range(max_tries):
+        old_ids = rng.choice(selected, size=2, replace=False)
+        old_a, old_b = int(old_ids[0]), int(old_ids[1])
+        union = frozenset(
+            list(candidates[old_a]["shop_seq"]) + list(candidates[old_b]["shop_seq"])
+        )
+        if len(union) < 2 or len(union) > 2 * max_bundle_size:
+            continue
+
+        anchor = min(union)
+        others = sorted(union - {anchor})
+        alternatives: list[tuple[int, int]] = []
+
+        max_left = min(max_bundle_size, len(union) - 1)
+        for left_size in range(1, max_left + 1):
+            for rest in combinations(others, left_size - 1):
+                left = frozenset((anchor, *rest))
+                right = union - left
+                if not right or len(right) > max_bundle_size:
+                    continue
+                left_ids = subset_index.get(left)
+                right_ids = subset_index.get(right)
+                if not left_ids or not right_ids:
+                    continue
+
+                # Usually each subset has one candidate. Size-4 generation can
+                # leave multiple route sequences for the same order subset.
+                for new_a in left_ids:
+                    for new_b in right_ids:
+                        if new_a == new_b:
+                            continue
+                        if {int(new_a), int(new_b)} == {old_a, old_b}:
+                            continue
+                        alternatives.append((int(new_a), int(new_b)))
+
+        if not alternatives:
+            continue
+
+        new_a, new_b = alternatives[int(rng.integers(0, len(alternatives)))]
+        y = y0.copy()
+        y[old_a] = 0
+        y[old_b] = 0
+        y[new_a] = 1
+        y[new_b] = 1
+        return y
+
+    return y0.copy()
+
+
+def diversify_feasible(
+    pool: dict,
+    x: np.ndarray,
+    rng,
+    subset_index: dict[frozenset[int], list[int]],
+    *,
+    exchanges: int = 1,
+) -> np.ndarray:
+    """Apply one or more feasibility-preserving route exchanges."""
+    y = np.asarray(x, dtype=np.int8).copy()
+    for _ in range(max(1, int(exchanges))):
+        z = feasible_route_exchange(pool, y, rng, subset_index)
+        if not np.array_equal(z, y):
+            y = z
+    return y
+
+
 
 def selection_is_feasible(pool: dict, x: np.ndarray, r0: int) -> bool:
     """Check exact order coverage and the fixed-R0 workforce constraint."""
@@ -231,6 +338,7 @@ class NSGA2Result:
     generations: int
     seed: int
     repair_failures: int
+    variation_failures: int
 
 
 def solve(
@@ -260,15 +368,14 @@ def solve(
 
     population = []
     repair_failures = 0
+    variation_failures = 0
+    subset_index = _subset_candidate_index(pool)
 
     def safe_repair(target: np.ndarray, fallback: np.ndarray | None = None) -> np.ndarray:
         nonlocal repair_failures
         try:
             return repair(pool, target, r0, rng, repair_time_limit)
         except RuntimeError as exc:
-            # A HiGHS time limit with no primal solution should not terminate a
-            # smoke run.  Preserve a known feasible parent/seed and record the
-            # event so final experiments can reject under-explored settings.
             if fallback is not None and selection_is_feasible(pool, fallback, r0):
                 repair_failures += 1
                 return np.asarray(fallback, dtype=np.int8).copy()
@@ -283,24 +390,27 @@ def solve(
     if not population:
         raise ValueError("At least one feasible initial solution is required.")
 
-    # Diversify around S0 first.  Large candidate pools can make a global
-    # random exact-cover repair expensive, so failed repairs fall back to S0
-    # rather than aborting the whole scenario.
+    # Build the starting population with feasibility-preserving route
+    # exchanges around S0. This avoids expensive exact-cover repair while
+    # creating genuinely different fixed-R0 solutions.
     base_seed = population[0].copy()
     attempts = 0
-    max_attempts = max(population_size * 2, 8)
+    max_attempts = max(population_size * 20, 40)
     while len(population) < population_size and attempts < max_attempts:
         attempts += 1
-        raw = base_seed.copy()
-        flip_probability = min(0.02, max(2.0 / max(n, 1), 0.001))
-        flips = rng.random(n) < flip_probability
-        raw[flips] = 1 - raw[flips]
-        population.append(safe_repair(raw, fallback=base_seed))
+        exchanges = 1 + (attempts % 4)
+        neighbor = diversify_feasible(
+            pool,
+            base_seed,
+            rng,
+            subset_index,
+            exchanges=exchanges,
+        )
+        if np.array_equal(neighbor, base_seed):
+            variation_failures += 1
+        population.append(neighbor)
         population = deduplicate(population)
 
-    # A smoke test is allowed to continue with duplicate feasible seeds.  The
-    # repair_failures diagnostic tells us whether the settings are adequate
-    # for a final experiment.
     while len(population) < population_size:
         population.append(base_seed.copy())
 
@@ -314,12 +424,33 @@ def solve(
         while len(offspring) < population_size:
             p1 = population[tournament(rng, rank, crowd)]
             p2 = population[tournament(rng, rank, crowd)]
-            c1, c2 = crossover(rng, p1, p2, crossover_probability)
-            c1 = mutate(rng, c1, mutation_probability)
-            c2 = mutate(rng, c2, mutation_probability)
-            offspring.append(safe_repair(c1, fallback=p1))
+
+            # Uniform crossover over route-selection bits is usually
+            # infeasible and requires an expensive exact-cover repair.
+            # Instead, use feasibility-preserving 2-route exchanges. The
+            # NSGA-II ranking/crowding selection remains unchanged.
+            c1 = diversify_feasible(
+                pool,
+                p1,
+                rng,
+                subset_index,
+                exchanges=1 + int(rng.integers(0, 3)),
+            )
+            c2 = diversify_feasible(
+                pool,
+                p2,
+                rng,
+                subset_index,
+                exchanges=1 + int(rng.integers(0, 3)),
+            )
+            if np.array_equal(c1, p1):
+                variation_failures += 1
+            if np.array_equal(c2, p2):
+                variation_failures += 1
+
+            offspring.append(c1)
             if len(offspring) < population_size:
-                offspring.append(safe_repair(c2, fallback=p2))
+                offspring.append(c2)
 
         combined = deduplicate(population + offspring)
         combined_obj = [evaluate(pool, x, scenario, metric) for x in combined]
@@ -351,4 +482,5 @@ def solve(
         generations=generations,
         seed=seed,
         repair_failures=repair_failures,
+        variation_failures=variation_failures,
     )
