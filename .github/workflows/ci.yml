@@ -1,8 +1,7 @@
-name: CI
+name: Manual CI validation
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -45,5 +44,7 @@ jobs:
           python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
           python run_burden_report.py --problem 01_data/test/TEST_K50_1.json --solution 05_results/S0/TEST_K50_1_S0.json --rider-type BIKE --save 05_results/raw/ci_TEST_K50_1_burden.json
 
-  # CI uses the license-free SciPy MILP backend. Full NSGA-II runs are kept out of
-  # CI because they are computational experiments rather than lightweight smoke tests.
+  # Manual validation only. The Stage 1 primary analysis is frozen, so routine
+  # documentation commits should not trigger GitHub-hosted runners automatically.
+  # This job uses the license-free SciPy MILP backend. Full NSGA-II runs remain
+  # computational experiments and are intentionally excluded from this validation.
