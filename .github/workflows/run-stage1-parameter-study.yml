@@ -1,0 +1,78 @@
+name: Run Stage 1 parameter study
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Successful Stage 1 run containing reusable S0 artifacts"
+        required: true
+        default: "37211005880"
+      metric:
+        description: "Equity metric"
+        required: true
+        default: "gini"
+        type: choice
+        options: [gini, std, range, max, cv]
+
+jobs:
+  parameter-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        instance: [STAGE1_1, STAGE1_3, STAGE1_11]
+        config:
+          - { population: 20, generations: 20, label: p20g20 }
+          - { population: 40, generations: 50, label: p40g50 }
+          - { population: 80, generations: 100, label: p80g100 }
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download reusable S0 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: stage1-${{ matrix.instance }}
+          path: baseline
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run S1-S3
+        run: |
+          mkdir -p "05_results/${{ matrix.instance }}/${{ matrix.config.label }}"
+          for SCENARIO in S1 S2 S3; do
+            python run_equity.py               --scenario "$SCENARIO"               --problem "01_data/stage1/${{ matrix.instance }}.json"               --workforce "baseline/S0/${{ matrix.instance }}_workforce.json"               --candidate-pool "baseline/S0/${{ matrix.instance }}_bike_pool.json"               --output-dir "05_results/${{ matrix.instance }}/${{ matrix.config.label }}"               --population-size "${{ matrix.config.population }}"               --generations "${{ matrix.config.generations }}"               --seed 0               --metric "${{ inputs.metric }}"
+          done
+      - name: Upload parameter-study result
+        uses: actions/upload-artifact@v4
+        with:
+          name: param-${{ matrix.instance }}-${{ matrix.config.label }}
+          path: 05_results/${{ matrix.instance }}/${{ matrix.config.label }}/
+          if-no-files-found: error
+
+  summarize:
+    needs: parameter-study
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download parameter-study artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: param-*
+          path: collected
+      - name: Summarize
+        run: |
+          python scripts/summarize_parameter_study.py --root collected --out-dir parameter_summary
+          cat parameter_summary/parameter_study.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload parameter summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: parameter-study-summary
+          path: parameter_summary/
