@@ -6,8 +6,8 @@ The Stage 1 primary analysis was frozen on 2026-10-05. One-off rescue, recovery,
 
 Active workflows are intentionally limited to:
 
-- `ci.yml` — syntax, data, and smoke checks
-- `run-test-k50.yml` — small reproducibility test
-- `run-stage1-batch.yml` — generic Stage 1 validation/batch runner
+- `ci.yml` — **manual-only** syntax/data/smoke validation
+- `run-test-k50.yml` — manually dispatched small reproducibility test
+- `run-stage1-batch.yml` — manually dispatched generic Stage 1 validation/batch runner
 
 Do not move an archived workflow back into `.github/workflows/` unless a new analysis version is explicitly started.
