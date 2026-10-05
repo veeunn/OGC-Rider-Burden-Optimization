@@ -1,0 +1,52 @@
+{
+  "locked_instances": [
+    "STAGE1_1",
+    "STAGE1_2",
+    "STAGE1_3",
+    "STAGE1_4",
+    "STAGE1_5",
+    "STAGE1_7",
+    "STAGE1_8",
+    "STAGE1_9",
+    "STAGE1_10",
+    "STAGE1_11",
+    "STAGE1_13",
+    "STAGE1_14",
+    "STAGE1_15",
+    "STAGE1_16",
+    "STAGE1_17",
+    "STAGE1_18"
+  ],
+  "n_instances": 16,
+  "scenarios": ["S1", "S2", "S3"],
+  "seeds": [0, 1, 2, 3, 4],
+  "expected_rows": 240,
+  "baseline_policy": "12 proven optimal S0; for time-limited S0 instances use best-known feasible fixed-R0 solution observed across S0 + final NSGA-II feasible Pareto solutions",
+  "changed_baselines": {
+    "STAGE1_5": {
+      "avg_cost": 2005.403333333333,
+      "source": "NSGA-II_pooled",
+      "source_scenario": "S1",
+      "seed": 2,
+      "old_s0_cost": 2005.5233333333329,
+      "improvement_vs_old_s0_pct": 0.005983475634783152
+    },
+    "STAGE1_10": {
+      "avg_cost": 3586.5570000000002,
+      "source": "NSGA-II_pooled",
+      "source_scenario": "S3",
+      "seed": 4,
+      "old_s0_cost": 3599.7570000000005,
+      "improvement_vs_old_s0_pct": 0.366691418337412
+    },
+    "STAGE1_18": {
+      "avg_cost": 3766.0500000000015,
+      "source": "NSGA-II_pooled",
+      "source_scenario": "S1",
+      "seed": 4,
+      "old_s0_cost": 3768.2520000000018,
+      "improvement_vs_old_s0_pct": 0.058435582333671535
+    }
+  },
+  "final_verdict": "PASS — suitable to freeze for Results use"
+}
