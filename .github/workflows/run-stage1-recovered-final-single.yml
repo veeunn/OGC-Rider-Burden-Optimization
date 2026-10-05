@@ -1,0 +1,104 @@
+name: Run one recovered Stage 1 final experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance:
+        description: "Recovered Stage 1 instance"
+        required: true
+        default: "STAGE1_4"
+      rescue_run_id:
+        description: "Run containing rescued S0 artifact"
+        required: true
+        default: "37266273804"
+      artifact_name:
+        description: "Artifact name containing rescued S0"
+        required: true
+        default: "rescue-one-STAGE1_4"
+      metric:
+        description: "Equity metric"
+        required: true
+        default: "gini"
+        type: choice
+        options: [gini, std, range, max, cv]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  final-one:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        seed: [0, 1, 2, 3, 4]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download rescued S0 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: baseline
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.rescue_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run S1-S3 final experiment
+        run: |
+          mkdir -p "05_results/${{ inputs.instance }}/seed${{ matrix.seed }}"
+          for SCENARIO in S1 S2 S3; do
+            python run_equity.py \
+              --scenario "$SCENARIO" \
+              --problem "01_data/stage1/${{ inputs.instance }}.json" \
+              --workforce "baseline/${{ inputs.instance }}_workforce.json" \
+              --candidate-pool "baseline/${{ inputs.instance }}_bike_pool.json" \
+              --output-dir "05_results/${{ inputs.instance }}/seed${{ matrix.seed }}" \
+              --population-size 80 \
+              --generations 100 \
+              --seed "${{ matrix.seed }}" \
+              --metric "${{ inputs.metric }}"
+          done
+
+      - name: Upload final seed result
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-final-${{ inputs.instance }}-seed${{ matrix.seed }}
+          path: 05_results/${{ inputs.instance }}/seed${{ matrix.seed }}/
+          if-no-files-found: error
+
+  summarize:
+    needs: final-one
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install summary dependency
+        run: pip install numpy
+      - name: Download final artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: recovered-final-${{ inputs.instance }}-*
+          path: collected
+      - name: Summarize recovered result
+        run: |
+          python scripts/summarize_final_stage1.py --root collected --out-dir recovered_summary
+          cat recovered_summary/final_stage1_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload recovered summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-final-${{ inputs.instance }}-summary
+          path: recovered_summary/
