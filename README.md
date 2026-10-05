@@ -29,7 +29,7 @@ A cost-only solution is retained as the **S0 baseline**. Each burden scenario is
 ├── 05_results/               # Raw and summarized outputs
 ├── 06_figures/               # Pareto and burden-distribution figures
 ├── 07_report/                # Primary research design, methods, QA, and Results
-└── reports/                  # Archived scalability and extension notes
+└── scripts/                  # Runners, validation, summaries, result builders
 ```
 
 ## Experimental scenarios
@@ -101,7 +101,7 @@ python scripts/validate_data.py \
 The default runner uses a **license-free SciPy MILP backend** for the final set-partitioning step while preserving the supplied bundle-generation logic and mathematical model.
 
 ```bash
-python run_baseline.py \
+python scripts/runners/run_baseline.py \
   --problem 01_data/test/TEST_K50_1.json \
   --solver scipy \
   --timelimit 60 \
@@ -112,7 +112,7 @@ To reproduce the original Gurobi backend instead:
 
 ```bash
 pip install -r requirements-gurobi.txt
-python run_baseline.py --problem 01_data/test/TEST_K50_1.json --solver gurobi --timelimit 60
+python scripts/runners/run_baseline.py --problem 01_data/test/TEST_K50_1.json --solver gurobi --timelimit 60
 ```
 
 A valid Gurobi license is required for the Gurobi backend.
@@ -120,7 +120,7 @@ A valid Gurobi license is required for the Gurobi backend.
 ### 3. Calculate S1-S3 burden statistics
 
 ```bash
-python run_burden_report.py \
+python scripts/runners/run_burden_report.py \
   --problem 01_data/test/TEST_K50_1.json \
   --solution 05_results/raw/TEST_K50_1_baseline.json \
   --rider-type BIKE \
@@ -136,7 +136,7 @@ This produces separate rider-level and distributional results for:
 ### BIKE-only runs
 
 ```bash
-python run_baseline.py \
+python scripts/runners/run_baseline.py \
   --problem 01_data/stage1/STAGE1_2.json \
   --solver scipy \
   --timelimit 100 \
@@ -148,7 +148,7 @@ python run_baseline.py \
 If a methodological experiment intentionally changes BIKE availability, it must be explicit:
 
 ```bash
-python run_baseline.py ... --bike-only --bike-availability 100
+python scripts/runners/run_baseline.py ... --bike-only --bike-availability 100
 ```
 
 Availability overrides must never be silently mixed with the original OGC constraints.
@@ -193,7 +193,7 @@ S1 / S2 / S3 all inherit exactly R0 riders
 Run S0:
 
 ```bash
-python run_s0.py \
+python scripts/runners/run_s0.py \
   --problem 01_data/test/TEST_K50_1.json \
   --solver scipy \
   --timelimit 60
@@ -211,9 +211,9 @@ The workforce manifest contains the baseline cost and `R0`.
 Check the inherited scenario configuration:
 
 ```bash
-python run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
-python run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
-python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
+python scripts/runners/run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
+python scripts/runners/run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
+python scripts/runners/run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
 ```
 
 The S1-S3 optimizer enforces:
@@ -233,9 +233,9 @@ The repository now contains a complete fixed-workforce NSGA-II pipeline:
 03_src/candidate_pool.py
 03_src/set_partition.py
 03_src/nsga2_solver.py
-run_s0.py
-run_equity.py
-run_all_scenarios.py
+scripts/runners/run_s0.py
+scripts/runners/run_equity.py
+scripts/runners/run_all_scenarios.py
 ```
 
 The key design is that **S0 and S1-S3 use the identical BIKE candidate route pool**. S0 solves cost-minimizing exact cover on that pool and saves `R0`; S1-S3 then optimize cost and one burden inequality objective while enforcing both exact order coverage and exactly `R0` selected routes.
@@ -243,7 +243,7 @@ The key design is that **S0 and S1-S3 use the identical BIKE candidate route poo
 Run the whole pipeline for one instance:
 
 ```bash
-python run_all_scenarios.py \
+python scripts/runners/run_all_scenarios.py \
   --problem 01_data/test/TEST_K50_1.json \
   --timelimit 60 \
   --population-size 40 \
