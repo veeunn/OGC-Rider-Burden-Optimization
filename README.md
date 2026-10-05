@@ -36,12 +36,12 @@ A cost-only solution is retained as the **S0 baseline**. Each burden scenario wi
 
 | Scenario | Cost objective | Burden/equity dimension | Status |
 |---|---|---|---|
-| S0 | Minimize OGC delivery cost | None | Baseline |
-| S1 | Minimize OGC delivery cost | Order Count | Planned |
-| S2 | Minimize OGC delivery cost | Active Route Duration | Planned |
-| S3 | Minimize OGC delivery cost | Waiting Time | Planned |
+| S0 | Minimize OGC delivery cost | None | Completed baseline |
+| S1 | Minimize OGC delivery cost | Order Count | Frozen primary results |
+| S2 | Minimize OGC delivery cost | Active Route Duration | Frozen primary results |
+| S3 | Minimize OGC delivery cost | Waiting Time | Frozen primary results |
 
-The exact **inequality function** used as the second objective (for example, Gini or another equity function) will be documented explicitly before the final runs rather than being silently assumed.
+The primary inequality objective is **Gini**. Final Stage 1 settings are population = 80, generations = 100, and seeds = 0–4. The locked 16-instance primary results and QA outputs are stored under `05_results/frozen_stage1_16/`.
 
 ## Reproducibility principles
 
@@ -67,14 +67,9 @@ The intended output is a transparent comparison of:
 
 ## Project status
 
-The main Stage 1 research pipeline is implemented. The current execution sequence is:
+The main Stage 1 analysis is complete and the primary results are **frozen**. The locked sample contains 16 Stage 1 instances × 3 burden scenarios × 5 seeds = 240 seed-level scenario results. QA checks passed after correcting the best-known feasible baseline for three time-limited S0 cases.
 
-1. smoke-test S0-S3 on representative Stage 1 instances;
-2. run all 18 Stage 1 instances with small validation settings;
-3. assess NSGA-II parameter and seed stability;
-4. freeze final settings;
-5. run the final multi-seed Stage 1 experiment;
-6. generate Pareto, Gini, Price-of-Fairness, and aggregate result tables/figures.
+Frozen numeric outputs are under `05_results/frozen_stage1_16/`, manuscript-ready figures are under `06_figures/frozen_stage1_16/`, and the Results draft is under `07_report/10_results_frozen_stage1.md`.
 
 Stage 2/3 scalability work is archived as an experimental extension and is not required for the current paper.
 
