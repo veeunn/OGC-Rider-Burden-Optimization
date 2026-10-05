@@ -195,7 +195,6 @@ Run S0:
 ```bash
 python scripts/runners/run_s0.py \
   --problem 01_data/test/TEST_K50_1.json \
-  --solver scipy \
   --timelimit 60
 ```
 
