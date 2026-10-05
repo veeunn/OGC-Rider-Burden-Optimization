@@ -73,7 +73,7 @@ jobs:
 
       - name: Run ${{ matrix.instance }}
         run: |
-          python run_all_scenarios.py \
+          python scripts/runners/run_all_scenarios.py \
             --problem 01_data/stage1/${{ matrix.instance }}.json \
             --timelimit 120 \
             --population-size ${{ inputs.population_size }} \
