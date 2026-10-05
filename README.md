@@ -6,7 +6,7 @@ Multi-objective last-mile delivery optimization research based on the **Optimiza
 
 This project studies whether a cost-minimizing delivery allocation can concentrate operational burden on particular riders, and how much additional delivery cost is required to improve burden equity.
 
-> **Main-study scope (current): OGC Stage 1 only.** The 18 Stage 1 instances are the empirical basis for the S0-S3 analysis. Stage 2/3 files and scalability prototypes are retained for reproducibility and future extension, but they are **not part of the current main empirical study**.
+> **Main-study scope (current): OGC Stage 1 only.** The primary empirical analysis is locked to **16 Stage 1 instances**. STAGE1_6 and STAGE1_12 are retained as unresolved computational extension cases. Stage 2/3 files and scalability prototypes are preserved for reproducibility and future extension, but they are **not part of the current main empirical study**.
 
 The current study design uses **BIKE riders only** to control for transport-mode heterogeneity and evaluates three burden dimensions separately:
 
@@ -28,8 +28,8 @@ A cost-only solution is retained as the **S0 baseline**. Each burden scenario wi
 ├── 04_experiments/           # S0-S3 experiment configurations/runners
 ├── 05_results/               # Raw and summarized outputs
 ├── 06_figures/               # Pareto and burden-distribution figures
-├── 07_report/                # Research design, objectives, constraints, results
-└── docs/                     # Supporting documentation
+├── 07_report/                # Primary research design, methods, QA, and Results
+└── reports/                  # Archived scalability and extension notes
 ```
 
 ## Experimental scenarios
@@ -69,7 +69,7 @@ The intended output is a transparent comparison of:
 
 The main Stage 1 analysis is complete and the primary results are **frozen**. The locked sample contains 16 Stage 1 instances × 3 burden scenarios × 5 seeds = 240 seed-level scenario results. QA checks passed after correcting the best-known feasible baseline for three time-limited S0 cases.
 
-Frozen numeric outputs are under `05_results/frozen_stage1_16/`, manuscript-ready figures are under `06_figures/frozen_stage1_16/`, and the Results draft is under `07_report/10_results_frozen_stage1.md`.
+Frozen numeric outputs are under `05_results/frozen_stage1_16/`, manuscript-ready figures are under `06_figures/frozen_stage1_16/`, and the primary document index is under `07_report/README.md`. Completed one-off GitHub Actions workflows are preserved under `.github/workflow_archive/`.
 
 Stage 2/3 scalability work is archived as an experimental extension and is not required for the current paper.
 
