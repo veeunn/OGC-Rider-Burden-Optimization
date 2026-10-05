@@ -2,26 +2,22 @@
 
 OGC 2024 problem instances used in this study.
 
-The user has confirmed that the supplied competition data may be included in this research repository.
-
 ## Layout
 
 ```text
 01_data/
 ├── README.md
-├── test/
-├── stage1/
-├── stage2_parts/
-└── stage3_parts/
+├── test/          # small validation instances
+├── stage1/        # Stage 1 instances used for the study
+├── stage2_parts/  # split Stage 2 files retained for extension work
+└── stage3_parts/  # split Stage 3 files retained for extension work
 ```
 
-Stage 1 instances are stored as original JSON files. Stage 2 and Stage 3 use split binary parts because some original JSON files exceed GitHub's browser-upload size limit. Split parts are byte-for-byte fragments of the original files; they are not independently valid JSON documents.
+The **frozen primary empirical analysis uses 16 Stage 1 instances**. STAGE1_6 and STAGE1_12 remain unresolved computational extension cases. Stage 2/3 data are retained for reproducibility and future scalability work, not for the current frozen Results.
 
-Each split-data directory contains a `manifest.json` with the original filename, original byte size, SHA-256 digest, and ordered part list.
+Stage 2 and Stage 3 use split binary parts because some original JSON files exceed GitHub's browser-upload size limit. Each split-data directory contains a `manifest.json` recording the original filename, byte size, SHA-256 digest, and ordered part list.
 
-## Restore Stage 2 / Stage 3
-
-Restore one instance and verify its byte size and SHA-256 digest:
+## Restore split Stage 2 / Stage 3 data
 
 ```bash
 python scripts/restore_split_data.py \
@@ -30,9 +26,7 @@ python scripts/restore_split_data.py \
   --file STAGE2_2.json
 ```
 
-Restore every instance in a stage by omitting `--file`.
-
-GitHub Actions workflows `Run Stage 2 batch` and `Run Stage 3 batch` perform restoration and verification automatically before validation and optimization.
+Omit `--file` to restore all instances in a stage. The former Stage 2/3 batch workflows are preserved under `.github/workflow_archive/` for provenance but are not active.
 
 ## Schema
 
@@ -55,10 +49,8 @@ GitHub Actions workflows `Run Stage 2 batch` and `Run Stage 3 batch` perform res
 
 ## Validation
 
-For a normal JSON instance:
-
 ```bash
 python scripts/validate_data.py 01_data/test/TEST_K50_1.json
 ```
 
-For split Stage 2/3 data, restore it first and then run the same validator on the restored JSON.
+For split Stage 2/3 data, restore the original JSON first and then validate the restored file.
