@@ -1,0 +1,17 @@
+instance,solver_class,milp_status,milp_message,solve_time_sec,original_s0_avg_cost,best_known_avg_cost,best_known_improvement_pct,best_known_source,source_scenario,source_seed
+STAGE1_1,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),1.196378231048584,3640.120000000001,3640.120000000001,0.0,original_S0,S0,
+STAGE1_2,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),5.361464977264404,3324.4440000000004,3324.4440000000004,0.0,original_S0,S0,
+STAGE1_3,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),89.93783283233643,2659.6020000000003,2659.6020000000003,0.0,original_S0,S0,
+STAGE1_4,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),1617.1675155162811,2537.766000000001,2537.766000000001,0.0,original_S0,S0,
+STAGE1_5,Time-limit feasible incumbent,1,Time limit reached. (HiGHS Status 13: Time limit reached),121.78086590766907,2005.5233333333329,2005.403333333333,0.005983475634783152,NSGA-II_pooled,S1,2
+STAGE1_7,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),0.7424652576446533,3436.8579999999993,3436.8579999999993,0.0,original_S0,S0,
+STAGE1_8,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),20.408627033233643,3239.8180000000007,3239.8180000000007,0.0,original_S0,S0,
+STAGE1_9,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),18.631803512573242,2915.166,2915.166,0.0,original_S0,S0,
+STAGE1_10,Time-limit feasible incumbent,1,Time limit reached. (HiGHS Status 13: Time limit reached),607.5743677616119,3599.7570000000005,3586.5570000000002,0.366691418337412,NSGA-II_pooled,S3,4
+STAGE1_11,Time-limit feasible incumbent,1,Time limit reached. (HiGHS Status 13: Time limit reached),121.51343297958374,2325.3886666666663,2325.3886666666663,0.0,original_S0,S0,
+STAGE1_13,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),0.02395939826965332,5129.587999999999,5129.587999999999,0.0,original_S0,S0,
+STAGE1_14,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),0.7513315677642822,4276.201999999999,4276.201999999999,0.0,original_S0,S0,
+STAGE1_15,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),0.25000667572021484,3785.3070000000007,3785.3070000000007,0.0,original_S0,S0,
+STAGE1_16,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),40.932350158691406,3014.8710000000005,3014.8710000000005,0.0,original_S0,S0,
+STAGE1_17,Optimal,0,Optimization terminated successfully. (HiGHS Status 7: Optimal),3.8370630741119385,3022.0466666666666,3022.0466666666666,0.0,original_S0,S0,
+STAGE1_18,Time-limit feasible incumbent,1,Time limit reached. (HiGHS Status 13: Time limit reached),604.4749166965485,3768.2520000000018,3766.0500000000015,0.058435582333671535,NSGA-II_pooled,S1,4
