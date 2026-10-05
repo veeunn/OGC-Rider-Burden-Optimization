@@ -2,13 +2,14 @@
 
 This directory stores experiment outputs.
 
-Planned outputs:
+## Current source of truth
 
-- raw Pareto solutions,
-- scenario-level summary tables,
-- rider-level burden distributions,
-- optimization runtime and seed metadata,
-- Price of Fairness calculations,
-- cross-scenario comparison tables.
+The finalized Stage 1 primary results are frozen under:
 
-Generated raw outputs may be excluded from Git if they become too large. Summary tables required for reproducibility should remain versioned.
+`05_results/frozen_stage1_16/`
+
+That folder contains the QA report, solver-status audit, frozen instance-scenario results, scenario aggregates, and freeze manifest.
+
+**For manuscript tables, figures, and Results text, use only the frozen folder.**
+
+Historical raw outputs and workflow artifacts may differ because they were generated before the S0 baseline QA correction. They are preserved for reproducibility but must not be used as final reported numbers.
