@@ -10,7 +10,8 @@ Key files:
 
 - qa_report.md — human-readable QA verdict, S0 solver audit, baseline corrections, and anomaly review.
 - qa_checks.csv — machine-readable PASS/REVIEW checklist.
-- final_stage1_summary_frozen.md — final pooled-knee and lowest-Gini values for every instance × scenario.
+- final_stage1_summary_frozen.md — human-readable final pooled-knee and lowest-Gini summary.
+- instance_scenario_results_frozen.csv — machine-readable 48-row instance × scenario frozen result table.
 - scenario_overall_summary_frozen.csv — final across-instance descriptive aggregates.
 - s0_solver_status.csv — original MILP status and frozen best-known baseline cost for each instance.
 - freeze_manifest.json — locked sample, seeds, baseline policy, and changed baseline provenance.
