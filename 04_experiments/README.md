@@ -1,32 +1,27 @@
 # 04_experiments
 
-Experiment definitions and run scripts.
+Scenario definitions and fixed-workforce experiment policy.
+
+Executable command-line runners are maintained separately under `scripts/runners/`.
 
 ## Scenarios
 
 ### S0 — Cost-only baseline
-Minimize OGC delivery cost with the original feasibility rules.
+Minimize OGC delivery cost and save the active BIKE rider count as `R0`.
 
 ### S1 — Order Count
-Two-objective optimization:
-1. minimize delivery cost,
-2. minimize inequality in rider Order Count.
+Minimize delivery cost and inequality in rider Order Count.
 
 ### S2 — Active Route Duration
-Two-objective optimization:
-1. minimize delivery cost,
-2. minimize inequality in Active Route Duration.
-
-Active Route Duration is defined as **travel + service time, excluding waiting time**.
+Minimize delivery cost and inequality in Active Route Duration, defined as travel + service time excluding waiting time.
 
 ### S3 — Waiting Time
-Two-objective optimization:
-1. minimize delivery cost,
-2. minimize inequality in Waiting Time.
+Minimize delivery cost and inequality in pickup-location waiting time before assigned orders are ready.
 
-Waiting Time is the idle time at pickup locations before an assigned order is ready.
+## Fixed-workforce rule
 
-## Important
+S1-S3 inherit exactly the S0-derived `R0`. Equity improvements therefore come from reassignment rather than increasing the number of active riders.
 
-The three burden dimensions are currently analyzed **separately**.
-No composite rider-burden score is used.
+The three burden dimensions are analyzed separately; no composite rider-burden score is used.
+
+See `WORKFORCE_POLICY.md` and `07_report/02_objective_functions_and_constraints.md` for the formal design.
