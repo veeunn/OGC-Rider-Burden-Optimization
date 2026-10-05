@@ -1,13 +1,19 @@
 # 06_figures
 
-Planned figures:
+Manuscript and reporting figures.
 
-- cost–equity Pareto frontier for S1,
-- cost–equity Pareto frontier for S2,
-- cost–equity Pareto frontier for S3,
-- rider burden distribution plots,
-- baseline vs selected Pareto-solution comparisons,
-- Price of Fairness visualization,
-- cross-scenario summary figures.
+## Current frozen figures
 
-All figures should be reproducible from files in `05_results/`.
+The manuscript-ready Stage 1 figures are under:
+
+`06_figures/frozen_stage1_16/`
+
+They are generated only from the frozen numeric source of truth in `05_results/frozen_stage1_16/`.
+
+Current frozen figures:
+
+- cost–equity pooled-knee trade-off;
+- instance-wise equity improvement by burden definition;
+- scenario-level mean equity improvement with dispersion.
+
+Do not use pre-freeze workflow artifacts to regenerate manuscript figures.
