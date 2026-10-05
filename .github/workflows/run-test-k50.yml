@@ -43,16 +43,16 @@ jobs:
 
       - name: Compile experiment code
         run: |
-          python -m py_compile run_s0.py
-          python -m py_compile run_equity.py
-          python -m py_compile run_all_scenarios.py
+          python -m py_compile scripts/runners/run_s0.py
+          python -m py_compile scripts/runners/run_equity.py
+          python -m py_compile scripts/runners/run_all_scenarios.py
           python -m py_compile 03_src/candidate_pool.py
           python -m py_compile 03_src/set_partition.py
           python -m py_compile 03_src/nsga2_solver.py
 
       - name: Run S0 to S3
         run: |
-          python run_all_scenarios.py \
+          python scripts/runners/run_all_scenarios.py \
             --problem 01_data/test/TEST_K50_1.json \
             --timelimit 60 \
             --population-size ${{ inputs.population_size }} \
