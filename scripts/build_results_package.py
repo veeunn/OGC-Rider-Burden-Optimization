@@ -62,6 +62,7 @@ def main() -> None:
 
     inst = pd.read_csv(src / "instance_scenario_summary.csv")
     scen = pd.read_csv(src / "scenario_overall_summary.csv")
+    n_instances = int(inst["instance"].nunique())
 
     inst["instance_no"] = inst["instance"].map(instance_number)
     inst["K"] = inst["instance"].map(lambda x: load_k(repo, x))
@@ -86,7 +87,7 @@ def main() -> None:
     table2 = scen.copy()
     table2.to_csv(out / "table2_scenario_aggregate.csv", index=False)
 
-    # Figure 1: pooled-knee cost-equity trade-off across all 13 instances.
+    # Figure 1: pooled-knee cost-equity trade-off across all primary instances.
     fig, ax = plt.subplots(figsize=(8.5, 6))
     for scenario, g in inst.groupby("scenario"):
         ax.scatter(
@@ -129,7 +130,7 @@ def main() -> None:
     ax.bar(x, scen["pooled_knee_improvement_mean"], yerr=scen["pooled_knee_improvement_sd"], capsize=4)
     ax.set_xticks(x, [f"{s}\n{SCENARIO_LABELS[s]}" for s in scen["scenario"]])
     ax.set_ylabel("Mean pooled-knee equity improvement (%)")
-    ax.set_title("Scenario-level equity improvement across 13 instances")
+    ax.set_title(f"Scenario-level equity improvement across {n_instances} instances")
     ax.grid(axis="y", alpha=0.2)
     fig.tight_layout()
     fig.savefig(out / "fig3_scenario_improvement.png", dpi=220)
@@ -165,11 +166,11 @@ def main() -> None:
     # Markdown results brief.
     s = scen.set_index("scenario")
     lines = [
-        "# Stage 1 Final Results Package — 13 computationally completed instances",
+        f"# Stage 1 Final Results Package — {n_instances} primary instances",
         "",
         "## Experiment status",
         "",
-        "Final NSGA-II settings are population = 80, generations = 100, five random seeds (0–4), and Gini as the primary inequality metric. The current final set contains 13 Stage 1 instances that completed the S0 baseline and all three equity scenarios. The remaining five Stage 1 instances are not silently discarded; they remain a separate computational-rescue task.",
+        f"Final NSGA-II settings are population = 80, generations = 100, five random seeds (0–4), and Gini as the primary inequality metric. The locked primary analysis contains {n_instances} Stage 1 instances that completed the common S0 baseline and all three equity scenarios.",
         "",
         "## Main descriptive result",
         "",
@@ -177,7 +178,7 @@ def main() -> None:
         f"- S2 (Route Duration): mean pooled-knee equity improvement = **{s.loc['S2','pooled_knee_improvement_mean']:.2f}%** with mean PoF = **{s.loc['S2','pooled_knee_pof_mean']:.2f}%**.",
         f"- S3 (Waiting Time): mean pooled-knee equity improvement = **{s.loc['S3','pooled_knee_improvement_mean']:.2f}%** with mean PoF = **{s.loc['S3','pooled_knee_pof_mean']:.2f}%**.",
         "",
-        "Across the current 13-instance set, S2 and S3 show substantially larger reductions in rider-burden inequality than S1, while their average cost penalties at the pooled knee remain in the low-single-digit range. S1 shows a smaller equity gain but the lowest average Price of Fairness.",
+        f"Across the locked {n_instances}-instance primary set, S2 and S3 show substantially larger reductions in rider-burden inequality than S1, while their average cost penalties at the pooled knee remain in the low-single-digit range. S1 shows a smaller equity gain but the lowest average Price of Fairness.",
         "",
         "## Interpretation by research question",
         "",
@@ -195,10 +196,10 @@ def main() -> None:
         "",
         "## What is still provisional",
         "",
-        "The 13-instance aggregate is descriptive, not the final population-wide claim until the five unresolved Stage 1 instances are either computationally recovered or excluded under a pre-specified, defensible computational-feasibility rule. No inferential significance claim should be attached to the across-instance mean±SD at this stage.",
+        "The primary analysis set was locked at 16 instances before obtaining S1–S3 equity outcomes for STAGE1_6 and STAGE1_12. Those two instances are treated as computationally unresolved extensions. Across-instance mean±SD are descriptive and should not be presented as population-level inferential estimates.",
         "",
     ]
-    (out / "results_brief_13instances.md").write_text("\n".join(lines), encoding="utf-8")
+    (out / f"results_brief_{n_instances}instances.md").write_text("\n".join(lines), encoding="utf-8")
 
     print(f"Wrote results package to {out}")
 
