@@ -1,0 +1,72 @@
+name: Build locked 16-instance Stage 1 results
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install numpy pandas matplotlib
+
+      - name: Download original 13-instance final artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: final-STAGE1-*
+          path: collected/original13
+          repository: ${{ github.repository }}
+          run-id: "37255078416"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download recovered STAGE1_10 and STAGE1_18 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: recovered-final-STAGE1_*-seed*
+          path: collected/recovered10_18
+          repository: ${{ github.repository }}
+          run-id: "37266271464"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download recovered STAGE1_4 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: recovered-final-STAGE1_4-seed*
+          path: collected/recovered4
+          repository: ${{ github.repository }}
+          run-id: "37279236267"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summarize locked 16-instance final set
+        run: |
+          python scripts/summarize_final_stage1.py --root collected --out-dir final16_summary
+          cat final16_summary/final_stage1_summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build paper-ready package
+        run: |
+          python scripts/build_results_package.py \
+            --summary-dir final16_summary \
+            --repo-root . \
+            --out-dir paper_results_16
+
+      - name: Upload locked 16-instance summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-stage1-summary-16
+          path: final16_summary/
+
+      - name: Upload paper-ready 16-instance package
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-results-package-16
+          path: paper_results_16/
