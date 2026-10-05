@@ -1,0 +1,46 @@
+name: Rescue Stage 1 candidate generation for 6 and 12
+
+on:
+  workflow_dispatch:
+    inputs:
+      s0_timelimit:
+        description: "Exact-cover MILP time limit after candidate generation (seconds)"
+        required: true
+        default: "1800"
+
+permissions:
+  contents: read
+
+jobs:
+  rescue-generation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        instance: [STAGE1_6, STAGE1_12]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate full candidate pool and solve S0
+        run: |
+          python run_s0.py \
+            --problem "01_data/stage1/${{ matrix.instance }}.json" \
+            --timelimit "${{ inputs.s0_timelimit }}" \
+            --output-dir "05_results/S0"
+
+      - name: Upload rescue result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rescue-generation-${{ matrix.instance }}
+          path: 05_results/S0/
+          if-no-files-found: warn
