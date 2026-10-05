@@ -14,8 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent
-SRC = ROOT / "03_src"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SRC = REPO_ROOT / "03_src"
 sys.path.insert(0, str(SRC))
 
 from candidate_pool import load_candidate_pool

@@ -21,8 +21,8 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
-BASELINE = ROOT / "02_baseline" / "runnable"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BASELINE = REPO_ROOT / "02_baseline" / "runnable"
 sys.path.insert(0, str(BASELINE))
 
 import numpy as np

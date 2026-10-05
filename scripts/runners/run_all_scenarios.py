@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+RUNNER_DIR = Path(__file__).resolve().parent
+
 
 def run(cmd):
     print("+", " ".join(map(str,cmd)), flush=True)
@@ -27,7 +29,7 @@ def main():
     stem=Path(args.problem).stem
     s0dir=Path(args.output_dir)/"S0"
 
-    run([py,"run_s0.py",
+    run([py,str(RUNNER_DIR/"run_s0.py"),
          "--problem",args.problem,
          "--timelimit",str(args.timelimit),
          "--output-dir",str(s0dir)])
@@ -36,7 +38,7 @@ def main():
     candidate_pool=s0dir/f"{stem}_bike_pool.json"
 
     for scenario in ["S1","S2","S3"]:
-        run([py,"run_equity.py",
+        run([py,str(RUNNER_DIR/"run_equity.py"),
              "--scenario",scenario,
              "--problem",args.problem,
              "--workforce",str(workforce),

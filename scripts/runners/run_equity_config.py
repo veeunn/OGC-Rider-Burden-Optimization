@@ -10,8 +10,8 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
-SRC = ROOT / "03_src"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SRC = REPO_ROOT / "03_src"
 sys.path.insert(0, str(SRC))
 
 from workforce import load_workforce_manifest
