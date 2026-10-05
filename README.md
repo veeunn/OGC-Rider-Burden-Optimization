@@ -14,7 +14,7 @@ The current study design uses **BIKE riders only** to control for transport-mode
 - **S2 — Active Route Duration:** travel and service time, excluding waiting time
 - **S3 — Waiting Time:** idle time at pickup locations before orders are ready
 
-A cost-only solution is retained as the **S0 baseline**. Each burden scenario will be compared against S0 using a cost–equity Pareto analysis with NSGA-II.
+A cost-only solution is retained as the **S0 baseline**. Each burden scenario is compared against S0 using a cost–equity Pareto analysis with NSGA-II.
 
 > Current rule: **do not combine the three burden measures into a composite index.** S1, S2, and S3 are analyzed independently.
 
@@ -171,9 +171,11 @@ The original `util.py` contains two evaluator/plotting call sites that pass `rid
 
 The SciPy backend is stored separately as `myalgorithm_scipy.py`; the original Gurobi algorithm is not overwritten.
 
-## Continuous integration
+## Manual validation
 
-`.github/workflows/ci.yml` checks Python syntax, validates committed OGC instances, runs a license-free baseline smoke test, and generates an S1-S3 burden report on a small test instance.
+`.github/workflows/ci.yml` is intentionally **manual-only** after the Stage 1 results freeze. When explicitly dispatched, it checks Python syntax, validates committed OGC instances, runs a license-free baseline smoke test, and generates an S1-S3 burden report on a small test instance.
+
+Routine documentation or repository-cleanup commits do not automatically consume GitHub Actions runner time.
 
 
 ## Fixed-workforce research workflow
@@ -214,7 +216,7 @@ python run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_w
 python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
 ```
 
-All future S1-S3 optimizers must enforce:
+The S1-S3 optimizer enforces:
 
 ```text
 number of selected bundles = R0
