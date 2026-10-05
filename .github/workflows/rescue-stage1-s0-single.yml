@@ -1,0 +1,56 @@
+name: Rescue one Stage 1 S0 from saved candidate pool
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance:
+        description: "Stage 1 instance to rescue"
+        required: true
+        default: "STAGE1_4"
+      source_run_id:
+        description: "Smoke run containing saved candidate pool"
+        required: true
+        default: "37211005880"
+      s0_timelimit:
+        description: "Exact-cover MILP time limit in seconds"
+        required: true
+        default: "1800"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  rescue-one:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download saved candidate pool artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: stage1-${{ inputs.instance }}
+          path: saved
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Solve S0 from saved pool
+        run: |
+          python run_s0_from_pool.py \
+            --candidate-pool "saved/S0/${{ inputs.instance }}_bike_pool.json" \
+            --problem "01_data/stage1/${{ inputs.instance }}.json" \
+            --timelimit "${{ inputs.s0_timelimit }}" \
+            --output-dir "05_results/S0"
+          cp "saved/S0/${{ inputs.instance }}_bike_pool.json" "05_results/S0/${{ inputs.instance }}_bike_pool.json"
+      - name: Upload rescued baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rescue-one-${{ inputs.instance }}
+          path: 05_results/S0/
+          if-no-files-found: warn
