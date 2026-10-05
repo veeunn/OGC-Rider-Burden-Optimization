@@ -1,0 +1,79 @@
+name: Run Stage 1 seed stability
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Stage 1 batch run containing reusable S0 artifacts"
+        required: true
+        default: "37211005880"
+      metric:
+        description: "Equity metric"
+        required: true
+        default: "gini"
+        type: choice
+        options: [gini, std, range, max, cv]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  seed-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        instance: [STAGE1_1, STAGE1_3, STAGE1_11]
+        seed: [0, 1, 2, 3, 4]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download reusable S0 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: stage1-${{ matrix.instance }}
+          path: baseline
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run S1-S3 at population 80 / generations 100
+        run: |
+          mkdir -p "05_results/${{ matrix.instance }}/seed${{ matrix.seed }}"
+          for SCENARIO in S1 S2 S3; do
+            python run_equity.py               --scenario "$SCENARIO"               --problem "01_data/stage1/${{ matrix.instance }}.json"               --workforce "baseline/S0/${{ matrix.instance }}_workforce.json"               --candidate-pool "baseline/S0/${{ matrix.instance }}_bike_pool.json"               --output-dir "05_results/${{ matrix.instance }}/seed${{ matrix.seed }}"               --population-size 80               --generations 100               --seed "${{ matrix.seed }}"               --metric "${{ inputs.metric }}"
+          done
+      - name: Upload seed result
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-${{ matrix.instance }}-${{ matrix.seed }}
+          path: 05_results/${{ matrix.instance }}/seed${{ matrix.seed }}/
+          if-no-files-found: error
+
+  summarize:
+    needs: seed-study
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download seed-study artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: seed-*
+          path: collected
+      - name: Summarize seed stability
+        run: |
+          python scripts/summarize_seed_stability.py --root collected --out-dir seed_summary
+          cat seed_summary/seed_stability_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload seed summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-stability-summary
+          path: seed_summary/
