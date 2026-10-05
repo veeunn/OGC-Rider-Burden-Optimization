@@ -15,13 +15,13 @@ jobs:
         run: pip install -r requirements.txt
       - name: Compile Python sources
         run: |
-          python -m py_compile run_baseline.py
+          python -m py_compile scripts/runners/run_baseline.py
           python -m py_compile 02_baseline/runnable/util.py
           python -m py_compile 02_baseline/runnable/myalgorithm.py
           python -m py_compile 02_baseline/runnable/myalgorithm_scipy.py
-          python -m py_compile run_burden_report.py
-          python -m py_compile run_s0.py
-          python -m py_compile run_equity_config.py
+          python -m py_compile scripts/runners/run_burden_report.py
+          python -m py_compile scripts/runners/run_s0.py
+          python -m py_compile scripts/runners/run_equity_config.py
           python -m py_compile 03_src/workforce.py
           python -m py_compile 03_src/data_loader.py
           python -m py_compile 03_src/route_evaluator.py
@@ -30,19 +30,19 @@ jobs:
           python -m py_compile 03_src/candidate_pool.py
           python -m py_compile 03_src/set_partition.py
           python -m py_compile 03_src/nsga2_solver.py
-          python -m py_compile run_equity.py
-          python -m py_compile run_all_scenarios.py
+          python -m py_compile scripts/runners/run_equity.py
+          python -m py_compile scripts/runners/run_all_scenarios.py
       - name: Validate committed datasets
         run: |
           python scripts/validate_data.py 01_data/test/TEST_K50_1.json 01_data/test/TEST_K50_2.json
           python scripts/validate_data.py 01_data/stage1/STAGE1_1.json 01_data/stage1/STAGE1_2.json
       - name: Run S0 workforce smoke test
         run: |
-          python run_s0.py --problem 01_data/test/TEST_K50_1.json --timelimit 20 --output-dir 05_results/S0
-          python run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
-          python run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
-          python run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
-          python run_burden_report.py --problem 01_data/test/TEST_K50_1.json --solution 05_results/S0/TEST_K50_1_S0.json --rider-type BIKE --save 05_results/raw/ci_TEST_K50_1_burden.json
+          python scripts/runners/run_s0.py --problem 01_data/test/TEST_K50_1.json --timelimit 20 --output-dir 05_results/S0
+          python scripts/runners/run_equity_config.py --scenario S1 --workforce 05_results/S0/TEST_K50_1_workforce.json
+          python scripts/runners/run_equity_config.py --scenario S2 --workforce 05_results/S0/TEST_K50_1_workforce.json
+          python scripts/runners/run_equity_config.py --scenario S3 --workforce 05_results/S0/TEST_K50_1_workforce.json
+          python scripts/runners/run_burden_report.py --problem 01_data/test/TEST_K50_1.json --solution 05_results/S0/TEST_K50_1_S0.json --rider-type BIKE --save 05_results/raw/ci_TEST_K50_1_burden.json
 
   # Manual validation only. The Stage 1 primary analysis is frozen, so routine
   # documentation commits should not trigger GitHub-hosted runners automatically.
