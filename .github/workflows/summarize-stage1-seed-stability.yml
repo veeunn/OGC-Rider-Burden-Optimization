@@ -1,0 +1,41 @@
+name: Summarize Stage 1 seed stability
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Completed seed-stability run ID"
+        required: true
+        default: "37249150614"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install summary dependency
+        run: pip install numpy
+      - name: Download seed-study artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: seed-*
+          path: collected
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Summarize seed stability
+        run: |
+          python scripts/summarize_seed_stability.py --root collected --out-dir seed_summary
+          cat seed_summary/seed_stability_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload seed summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-stability-summary
+          path: seed_summary/
