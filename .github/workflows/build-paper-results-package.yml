@@ -1,0 +1,50 @@
+name: Build Stage 1 paper results package
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Final Stage 1 workflow run containing final-stage1-summary"
+        required: true
+        default: "37255078416"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install pandas matplotlib numpy
+
+      - name: Download final Stage 1 summary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: final-stage1-summary
+          path: final_summary
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build paper-ready package
+        run: |
+          python scripts/build_results_package.py \
+            --summary-dir final_summary \
+            --repo-root . \
+            --out-dir paper_results
+          cat paper_results/results_brief_13instances.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload paper results package
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-results-package-13
+          path: paper_results/
+          if-no-files-found: error
