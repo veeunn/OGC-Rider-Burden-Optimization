@@ -1,0 +1,13 @@
+check,status,severity,detail
+Expected rows,PASS,critical,240/240
+Missing seeds,PASS,critical,0 missing
+R0 consistency,PASS,critical,consistent across all 16 instances
+Baseline-cost consistency,PASS,critical,corrected best-known baseline consistent across all seed/scenario rows
+Baseline-Gini recomputation,PASS,critical,recomputed directly from best-known selected candidate IDs and candidate pool
+Best-known baseline feasibility,PASS,critical,fixed R0 + exact pickup/delivery cover for all 16
+Formula recomputation,PASS,critical,PoF and equity improvement match corrected baseline formulas for all pooled points
+Negative PoF after correction,PASS,critical,none below numerical tolerance
+Pareto dominance,PASS,critical,no dominated points in corrected pooled frontiers
+S0 solver status,PASS,informational,12 Optimal; 4 time-limit feasible incumbents
+Numerical anomalies,REVIEW,informational,"STAGE1_5: best-known cost improves original S0 by 0.0060% (2005.523333 -> 2005.403333) | STAGE1_10: best-known cost improves original S0 by 0.3667% (3599.757000 -> 3586.557000) | STAGE1_18: best-known cost improves original S0 by 0.0584% (3768.252000 -> 3766.050000) | STAGE1_10-S1: pooled knee improvement 62.46%, PoF 9.54% | STAGE1_14-S2-seed2: one historical per-seed same-cost/worse-Gini point was previously flagged; pooled frontier removes it, so aggregate results are unaffected."
+Final verdict,PASS,critical,PASS — suitable to freeze for Results use
